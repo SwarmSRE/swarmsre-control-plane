@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List
+from fastapi import APIRouter, HTTPException
+from typing import Dict, List
+from datetime import datetime
 from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
 from api.websockets import manager
 
@@ -25,7 +26,7 @@ async def create_incident(incident_in: IncidentCreate):
         "data": incident.model_dump(mode='json')
     })
     
-    # In Day 3/4, this is where we will trigger the LangGraph state machine execution!
+    # TODO: Wire LangGraph state machine trigger here
     
     return incident
 
@@ -50,10 +51,11 @@ async def approve_incident(incident_id: str):
     incident = db[incident_id]
     
     if incident.status != IncidentStatus.PROPOSED:
-        raise HTTPException(status_code=400, detail=f"Cannot approve incident in {incident.status} state")
+        raise HTTPException(status_code=400, detail=f"Cannot approve incident in {incident.status.value} state")
         
     # Update state
     incident.status = IncidentStatus.RESOLVED
+    incident.updated_at = datetime.utcnow()
     db[incident_id] = incident
     
     # Broadcast update
@@ -62,7 +64,7 @@ async def approve_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # In Day 8, this will trigger the LangGraph execution to resume from the (pause) node
+    # TODO: Trigger LangGraph execution to resume from the HITL pause node
     
     return incident
 
@@ -77,10 +79,11 @@ async def reject_incident(incident_id: str):
     incident = db[incident_id]
     
     if incident.status != IncidentStatus.PROPOSED:
-        raise HTTPException(status_code=400, detail=f"Cannot reject incident in {incident.status} state")
+        raise HTTPException(status_code=400, detail=f"Cannot reject incident in {incident.status.value} state")
         
     # Update state
     incident.status = IncidentStatus.REJECTED
+    incident.updated_at = datetime.utcnow()
     db[incident_id] = incident
     
     # Broadcast update
@@ -89,6 +92,6 @@ async def reject_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # In Day 8, this will trigger LangGraph to refine or close the incident
+    # TODO: Trigger LangGraph to refine or close the incident
     
     return incident
