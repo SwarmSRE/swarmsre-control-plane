@@ -11,7 +11,11 @@ app = FastAPI(
 # Allow CORS for the dashboard
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For hackathon demo purposes
+    allow_origins=[
+        "http://localhost:3000",
+        "https://swarmsre.app",
+        "https://www.swarmsre.app"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
