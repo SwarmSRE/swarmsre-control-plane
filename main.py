@@ -1,5 +1,6 @@
+import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from api import incidents, websockets
 
 app = FastAPI(
@@ -8,19 +9,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Allow CORS for the dashboard
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173"
-    ],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include routers
+# Include API routers first (higher priority than static file catch-all)
 app.include_router(incidents.router)
 app.include_router(websockets.router)
 
@@ -28,6 +17,13 @@ app.include_router(websockets.router)
 async def health_check():
     """Health check endpoint for the control plane."""
     return {"status": "ok", "component": "control-plane"}
+
+# Serve the compiled React dashboard UI as static files (ArgoCD pattern)
+# In production, the Dockerfile multi-stage build compiles the UI into ui/dist/
+# In development, run `cd ui && npm run build` first, or use Vite dev server separately
+UI_DIR = os.path.join(os.path.dirname(__file__), "ui", "dist")
+if os.path.isdir(UI_DIR):
+    app.mount("/", StaticFiles(directory=UI_DIR, html=True), name="ui")
 
 if __name__ == "__main__":
     import uvicorn
