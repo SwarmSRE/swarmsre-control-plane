@@ -1,4 +1,4 @@
-fastapi==0.103.2
-uvicorn==0.23.2
-pydantic==2.4.2
-kubernetes==28.1.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+kubernetes>=30.0.0
