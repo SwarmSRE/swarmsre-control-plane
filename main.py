@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from api import incidents, websockets
 
@@ -17,6 +17,11 @@ app.include_router(websockets.router)
 async def health_check():
     """Health check endpoint for the control plane."""
     return {"status": "ok", "component": "control-plane"}
+
+@app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def handle_api_404(request: Request, path: str):
+    """Explicitly return 404 for unknown /api/ routes so they don't fall through to the UI."""
+    raise HTTPException(status_code=404, detail="API route not found")
 
 # Serve the compiled React dashboard UI as static files (ArgoCD pattern)
 # In production, the Dockerfile multi-stage build compiles the UI into ui/dist/

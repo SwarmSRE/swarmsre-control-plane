@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List
-from datetime import datetime
+from datetime import datetime, timezone
 from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
 from api.websockets import manager
 
@@ -55,7 +55,7 @@ async def approve_incident(incident_id: str):
         
     # Update state
     incident.status = IncidentStatus.RESOLVED
-    incident.updated_at = datetime.utcnow()
+    incident.updated_at = datetime.now(timezone.utc)
     db[incident_id] = incident
     
     # Broadcast update
@@ -83,7 +83,7 @@ async def reject_incident(incident_id: str):
         
     # Update state
     incident.status = IncidentStatus.REJECTED
-    incident.updated_at = datetime.utcnow()
+    incident.updated_at = datetime.now(timezone.utc)
     db[incident_id] = incident
     
     # Broadcast update

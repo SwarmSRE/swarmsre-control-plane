@@ -27,7 +27,8 @@ class ConnectionManager:
         for connection in list(self.active_connections):
             try:
                 await connection.send_text(text_message)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Failed to send websocket message: {e}")
                 stale_connections.append(connection)
         for conn in stale_connections:
             self.disconnect(conn)
