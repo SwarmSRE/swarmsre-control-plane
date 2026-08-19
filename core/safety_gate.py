@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import platform
 import stat
 import subprocess
 import tempfile
@@ -17,19 +18,36 @@ OPA_BIN = BIN_DIR / "opa"
 class SafetyGate:
     def __init__(self, policy_path: str | Path = POLICY_PATH):
         self.policy_path = Path(policy_path)
-        self._ensure_opa_cli()
 
     def _ensure_opa_cli(self):
         """Downloads the OPA CLI if it doesn't exist."""
         if OPA_BIN.exists():
             return
             
-        logger.info(f"Downloading OPA CLI {OPA_VERSION} to {OPA_BIN}...")
+        system = platform.system().lower()
+        arch = platform.machine().lower()
+        if arch in ["x86_64", "amd64"]:
+            arch_str = "amd64"
+        elif arch in ["arm64", "aarch64"]:
+            arch_str = "arm64_static" if system == "linux" else "aarch64"
+        else:
+            raise RuntimeError(f"Unsupported architecture for automatic OPA download: {arch}")
+
+        if system == "darwin":
+            os_str = "darwin"
+        elif system == "linux":
+            os_str = "linux"
+        else:
+            raise RuntimeError(f"Unsupported OS for automatic OPA download: {system}")
+
+        logger.info(f"Downloading OPA CLI {OPA_VERSION} for {os_str}/{arch_str} to {OPA_BIN}...")
+        logger.warning("Skipping checksum verification for MVP")
         BIN_DIR.mkdir(parents=True, exist_ok=True)
         
-        # Determine OS and arch (assuming linux/amd64 for the hackathon environment)
-        url = f"https://openpolicyagent.org/downloads/{OPA_VERSION}/opa_linux_amd64_static"
-        
+        url = f"https://openpolicyagent.org/downloads/{OPA_VERSION}/opa_{os_str}_{arch_str}"
+        if system == "linux" and arch_str == "amd64":
+            url = f"https://openpolicyagent.org/downloads/{OPA_VERSION}/opa_linux_amd64_static"
+            
         try:
             urllib.request.urlretrieve(url, OPA_BIN)
             # Make executable
@@ -44,6 +62,8 @@ class SafetyGate:
         Validate a Kubernetes patch using OPA Rego policies.
         Returns a list of denial messages. If empty, the patch is safe.
         """
+        self._ensure_opa_cli()
+        
         admission_input = {
             "request": {
                 "operation": "UPDATE",
@@ -67,7 +87,7 @@ class SafetyGate:
                 "--format", "json"
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=10.0)
             output = json.loads(result.stdout)
             
             # Extract results
@@ -87,6 +107,9 @@ class SafetyGate:
         except subprocess.CalledProcessError as e:
             logger.error(f"OPA eval failed: {e.stderr}")
             return [f"Safety policy evaluation failed: {e.stderr}"]
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"OPA eval timed out after 10s: {e}")
+            return ["Safety policy evaluation timed out after 10s."]
         except Exception as e:
             logger.error(f"Unexpected error in safety gate: {e}")
             return [f"Unexpected error in safety gate: {e}"]

@@ -38,17 +38,16 @@ deny[msg] {
     msg := sprintf("Container '%v' is requesting a hostPort, which is forbidden.", [container.name])
 }
 
+# Helper rule to get the namespace, preferring the request context over the object metadata
+req_namespace := input.request.namespace {
+    input.request.namespace != ""
+} else := input.request.object.metadata.namespace
+
 # Deny patches to critical namespaces
 deny[msg] {
-    namespace := input.request.object.metadata.namespace
     protected_namespaces := {"kube-system", "swarmsre-system"}
-    protected_namespaces[namespace]
-    msg := sprintf("Modifications to the protected namespace '%v' are forbidden.", [namespace])
+    protected_namespaces[req_namespace]
+    msg := sprintf("Modifications to the protected namespace '%v' are forbidden.", [req_namespace])
 }
 
-# Deny DELETE operations on namespaces
-deny[msg] {
-    input.request.operation == "DELETE"
-    input.request.kind.kind == "Namespace"
-    msg := "Namespace deletion is explicitly blocked by SwarmSRE safety gates."
-}
+

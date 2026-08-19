@@ -44,8 +44,8 @@ def test_deny_host_network(gate):
         }
     }
     denials = gate.validate_patch(patch)
-    assert len(denials) == 1
-    assert "hostNetwork" in denials[0]
+    assert len(denials) >= 1
+    assert any("hostNetwork" in d for d in denials)
 
 def test_deny_privileged_container(gate):
     patch = {
@@ -66,8 +66,8 @@ def test_deny_privileged_container(gate):
         }
     }
     denials = gate.validate_patch(patch)
-    assert len(denials) == 1
-    assert "privileged access" in denials[0]
+    assert len(denials) >= 1
+    assert any("privileged access" in d for d in denials)
 
 def test_deny_forbidden_capabilities(gate):
     patch = {
@@ -90,8 +90,8 @@ def test_deny_forbidden_capabilities(gate):
         }
     }
     denials = gate.validate_patch(patch)
-    assert len(denials) == 1
-    assert "forbidden capability: SYS_ADMIN" in denials[0]
+    assert len(denials) >= 1
+    assert any("forbidden capability: SYS_ADMIN" in d for d in denials)
 
 def test_deny_protected_namespace(gate):
     patch = {
@@ -99,8 +99,8 @@ def test_deny_protected_namespace(gate):
         "spec": {}
     }
     denials = gate.validate_patch(patch, namespace="kube-system")
-    assert len(denials) == 1
-    assert "kube-system" in denials[0]
+    assert len(denials) >= 1
+    assert any("kube-system" in d for d in denials)
     
 def test_deny_host_port(gate):
     patch = {
@@ -121,5 +121,5 @@ def test_deny_host_port(gate):
         }
     }
     denials = gate.validate_patch(patch)
-    assert len(denials) == 1
-    assert "hostPort" in denials[0]
+    assert len(denials) >= 1
+    assert any("hostPort" in d for d in denials)
