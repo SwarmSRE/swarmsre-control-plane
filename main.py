@@ -1,12 +1,27 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
+
 from api import incidents, websockets
+from core.watcher import watch_events
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the Kubernetes event watcher in the background
+    task = asyncio.create_task(watch_events(incidents.on_incident_detected))
+    yield
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
 
 app = FastAPI(
     title="SwarmSRE Control Plane",
     description="The brain of the operation for predicting, detecting, and fixing K8s incidents.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Include API routers first (higher priority than static file catch-all)
