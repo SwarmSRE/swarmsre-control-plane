@@ -3,6 +3,9 @@ from typing import Dict, List
 from datetime import datetime, timezone
 from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
 from api.websockets import manager
+import asyncio
+from agents.graph import app as langgraph_app
+from langgraph.types import Command
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -26,7 +29,16 @@ async def create_incident(incident_in: IncidentCreate):
         "data": incident.model_dump(mode='json')
     })
     
-    # TODO: Wire LangGraph state machine trigger here
+    # Trigger LangGraph state machine in the background
+    initial_state = {
+        "incident_id": incident.id,
+        "status": incident.status.value,
+        "raw_event": incident.raw_event or {},
+        "evidence": [],
+        "messages": [f"Incident {incident.id} created"]
+    }
+    config = {"configurable": {"thread_id": incident.id}}
+    asyncio.create_task(langgraph_app.ainvoke(initial_state, config))
     
     return incident
 
@@ -64,7 +76,9 @@ async def approve_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # TODO: Trigger LangGraph execution to resume from the HITL pause node
+    # Resume LangGraph execution from the HITL pause node
+    config = {"configurable": {"thread_id": incident_id}}
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config))
     
     return incident
 
@@ -92,6 +106,18 @@ async def reject_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # TODO: Trigger LangGraph to refine or close the incident
+    # Resume LangGraph execution with a rejection
+    config = {"configurable": {"thread_id": incident_id}}
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config))
     
     return incident
+
+async def on_incident_detected(incident_data: dict):
+    """Callback for the Kubernetes event watcher."""
+    incident_in = IncidentCreate(
+        title=f"K8s Event: {incident_data.get('reason', 'Unknown')} in {incident_data.get('namespace', 'unknown')}",
+        description=incident_data.get("message", "No message provided."),
+        source="kubernetes-watcher",
+        raw_event=incident_data
+    )
+    await create_incident(incident_in)
