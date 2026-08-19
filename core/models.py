@@ -1,8 +1,10 @@
-from enum import Enum
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 
 class IncidentStatus(str, Enum):
     OPEN = "OPEN"
@@ -15,7 +17,7 @@ class IncidentCreate(BaseModel):
     title: str
     description: str
     source: str = "kubernetes-watcher"
-    raw_event: Optional[Dict[str, Any]] = None
+    raw_event: dict[str, Any] | None = None
 
 class PatchProposal(BaseModel):
     incident_id: str
@@ -30,9 +32,9 @@ class IncidentResponse(BaseModel):
     source: str
     created_at: datetime
     updated_at: datetime
-    raw_event: Optional[Dict[str, Any]] = None
-    rca_summary: Optional[str] = None
-    proposed_patch: Optional[str] = None
+    raw_event: dict[str, Any] | None = None
+    rca_summary: str | None = None
+    proposed_patch: str | None = None
 
 class Incident(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -40,8 +42,8 @@ class Incident(BaseModel):
     description: str
     status: IncidentStatus = IncidentStatus.OPEN
     source: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    raw_event: Optional[Dict[str, Any]] = None
-    rca_summary: Optional[str] = None
-    proposed_patch: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    raw_event: dict[str, Any] | None = None
+    rca_summary: str | None = None
+    proposed_patch: str | None = None

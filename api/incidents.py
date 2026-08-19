@@ -1,17 +1,18 @@
-from fastapi import APIRouter, HTTPException
-from typing import Dict, List
-from datetime import datetime, timezone
-from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
-from api.websockets import manager
 import asyncio
-from agents.graph import app as langgraph_app
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, HTTPException
 from langgraph.types import Command
+
+from agents.graph import app as langgraph_app
+from api.websockets import manager
+from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
 # In-memory store for MVP
 # In a production scenario this would be a database (PostgreSQL, MongoDB)
-db: Dict[str, Incident] = {}
+db: dict[str, Incident] = {}
 
 @router.post("", response_model=IncidentResponse)
 async def create_incident(incident_in: IncidentCreate):
@@ -48,7 +49,7 @@ async def get_incident(incident_id: str):
         raise HTTPException(status_code=404, detail="Incident not found")
     return db[incident_id]
 
-@router.get("", response_model=List[IncidentResponse])
+@router.get("", response_model=list[IncidentResponse])
 async def list_incidents():
     return list(db.values())
 
@@ -67,7 +68,7 @@ async def approve_incident(incident_id: str):
         
     # Update state
     incident.status = IncidentStatus.RESOLVED
-    incident.updated_at = datetime.now(timezone.utc)
+    incident.updated_at = datetime.now(UTC)
     db[incident_id] = incident
     
     # Broadcast update
@@ -97,7 +98,7 @@ async def reject_incident(incident_id: str):
         
     # Update state
     incident.status = IncidentStatus.REJECTED
-    incident.updated_at = datetime.now(timezone.utc)
+    incident.updated_at = datetime.now(UTC)
     db[incident_id] = incident
     
     # Broadcast update

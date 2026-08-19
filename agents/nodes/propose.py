@@ -1,5 +1,7 @@
 import logging
+
 from langgraph.types import interrupt
+
 from agents.state import IncidentState
 
 logger = logging.getLogger(__name__)

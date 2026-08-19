@@ -1,11 +1,13 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from api import incidents, websockets
 
-import asyncio
-from contextlib import asynccontextmanager
+from api import incidents, websockets
 from core.watcher import watch_events
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

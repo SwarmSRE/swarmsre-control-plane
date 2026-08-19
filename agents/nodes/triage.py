@@ -1,4 +1,5 @@
 import logging
+
 from agents.state import IncidentState
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,5 @@
-import pytest
 from agents.nodes.triage import triage_node
-from agents.state import IncidentState
+
 
 def test_triage_passes_crashloopbackoff():
     state = {

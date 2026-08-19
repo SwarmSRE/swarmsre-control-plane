@@ -1,6 +1,7 @@
-import pytest
-from core.models import Incident, IncidentStatus, IncidentCreate
 from datetime import datetime
+
+from core.models import Incident, IncidentCreate, IncidentStatus
+
 
 def test_incident_creation():
     incident_in = IncidentCreate(

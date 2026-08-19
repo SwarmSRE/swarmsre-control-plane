@@ -1,5 +1,7 @@
 import asyncio
+
 from agents.graph import app as langgraph_app
+
 
 async def main():
     initial_state = {
@@ -14,7 +16,7 @@ async def main():
         print("Invoking graph...")
         result = await langgraph_app.ainvoke(initial_state, config)
         print("Graph finished", result)
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
 

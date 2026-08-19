@@ -1,7 +1,8 @@
-import os
-import httpx
 import logging
-from typing import Dict, Any
+import os
+from typing import Any
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ class MCPClient:
         self.base_url = os.environ.get("MCP_SERVER_URL", "http://localhost:3000")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
 
-    async def _call_tool(self, tool_name: str, arguments: dict) -> Dict[str, Any]:
+    async def _call_tool(self, tool_name: str, arguments: dict) -> dict[str, Any]:
         """Call an MCP tool via the HTTP/SSE interface."""
         # For this prototype, we're assuming a simple HTTP wrapper around the MCP server
         # In a real setup, this might use the official MCP Python SDK

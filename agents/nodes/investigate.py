@@ -1,4 +1,5 @@
 import logging
+
 from agents.state import IncidentState
 from core.mcp_client import mcp
 
@@ -31,4 +32,4 @@ async def investigate_node(state: IncidentState) -> dict:
         return {"evidence": [evidence_item], "messages": ["Investigation complete"]}
     except Exception as e:
         logger.error(f"Investigation failed: {e}")
-        return {"messages": [f"Investigation failed: {str(e)}"]}
+        return {"messages": [f"Investigation failed: {e!s}"]}

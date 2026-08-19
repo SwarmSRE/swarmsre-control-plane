@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
+
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 
@@ -52,7 +52,8 @@ async def watch_events(
         try:
             logger.info(f"Starting event watch (resource_version={resource_version or 'latest'})")
             
-            kwargs = {
+            from typing import Any
+            kwargs: dict[str, Any] = {
                 "timeout_seconds": timeout_seconds,
                 "watch": True,
             }
