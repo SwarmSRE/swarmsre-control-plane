@@ -3,6 +3,8 @@ import logging
 from langgraph.types import interrupt
 
 from agents.state import IncidentState
+from core.audit_logger import audit_logger
+from core.models import AuditAction, AuditEntry
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,13 @@ def propose_node(state: IncidentState) -> dict:
     
     if not patch:
         return {"status": "RESOLVED", "messages": ["No patch proposed. Resolving."]}
+
+    audit_logger.record_audit(AuditEntry(
+        incident_id=state.get("incident_id"),
+        action=AuditAction.PATCH_PROPOSED,
+        actor="ai-agent",
+        details={"rca": rca, "confidence": confidence}
+    ))
     
     # Pause the graph and send the proposal to the human
     # The graph will wait here until `Command(resume=...)` is invoked

@@ -47,3 +47,22 @@ class Incident(BaseModel):
     raw_event: dict[str, Any] | None = None
     rca_summary: str | None = None
     proposed_patch: str | None = None
+
+class AuditAction(str, Enum):
+    INCIDENT_CREATED = "INCIDENT_CREATED"
+    TRIAGE_COMPLETED = "TRIAGE_COMPLETED"
+    INVESTIGATION_COMPLETED = "INVESTIGATION_COMPLETED"
+    PATCH_PROPOSED = "PATCH_PROPOSED"
+    PATCH_APPROVED = "PATCH_APPROVED"
+    PATCH_REJECTED = "PATCH_REJECTED"
+    PATCH_EXECUTED = "PATCH_EXECUTED"
+    EVALUATION_COMPLETED = "EVALUATION_COMPLETED"
+
+class AuditEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    incident_id: str
+    action: AuditAction
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    actor: str = "system"  # e.g., "ai-agent", "human-approver", "system"
+    details: dict[str, Any] | None = None
+

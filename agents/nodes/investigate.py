@@ -1,7 +1,9 @@
 import logging
 
 from agents.state import IncidentState
+from core.audit_logger import audit_logger
 from core.mcp_client import mcp
+from core.models import AuditAction, AuditEntry
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,13 @@ async def investigate_node(state: IncidentState) -> dict:
             "logs": logs,
             "events": events
         }
+
+        audit_logger.record_audit(AuditEntry(
+            incident_id=state.get("incident_id"),
+            action=AuditAction.INVESTIGATION_COMPLETED,
+            actor="ai-agent",
+            details={"pod": pod_name, "namespace": namespace}
+        ))
         
         return {"evidence": [evidence_item], "messages": ["Investigation complete"]}
     except Exception as e:

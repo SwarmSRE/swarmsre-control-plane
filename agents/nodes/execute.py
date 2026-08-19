@@ -1,6 +1,8 @@
 import logging
 
 from agents.state import IncidentState
+from core.audit_logger import audit_logger
+from core.models import AuditAction, AuditEntry
 
 logger = logging.getLogger(__name__)
 
@@ -10,5 +12,11 @@ def execute_node(state: IncidentState) -> dict:
     
     if state.get("status") == "REJECTED":
         return {"messages": ["Execution skipped because patch was rejected."]}
+
+    audit_logger.record_audit(AuditEntry(
+        incident_id=state.get("incident_id"),
+        action=AuditAction.PATCH_EXECUTED,
+        actor="ai-agent"
+    ))
         
     return {"messages": ["Execution complete (placeholder)"]}
