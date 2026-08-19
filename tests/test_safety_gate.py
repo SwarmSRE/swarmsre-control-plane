@@ -1,5 +1,7 @@
 import pytest
+
 from core.safety_gate import SafetyGate
+
 
 @pytest.fixture
 def gate():
