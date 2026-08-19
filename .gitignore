@@ -69,3 +69,4 @@ venv.bak/
 
 # macOS
 .DS_Store
+.bin/
