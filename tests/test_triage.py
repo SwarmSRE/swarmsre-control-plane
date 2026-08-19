@@ -1,8 +1,9 @@
 from agents.nodes.triage import triage_node
+from agents.state import IncidentState
 
 
 def test_triage_passes_crashloopbackoff():
-    state = {
+    state: IncidentState = {
         "incident_id": "test-123",
         "status": "OPEN",
         "raw_event": {"reason": "CrashLoopBackOff"},
@@ -13,7 +14,7 @@ def test_triage_passes_crashloopbackoff():
     assert result["status"] == "INVESTIGATING"
 
 def test_triage_filters_unknown():
-    state = {
+    state: IncidentState = {
         "incident_id": "test-123",
         "status": "OPEN",
         "raw_event": {"reason": "SomeUnknownEvent"},

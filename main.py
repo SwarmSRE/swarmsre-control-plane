@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(watch_events(incidents.on_incident_detected))
     yield
     task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
 
 app = FastAPI(
     title="SwarmSRE Control Plane",

@@ -2,7 +2,7 @@ import operator
 from typing import Annotated, Literal, TypedDict
 
 
-class IncidentState(TypedDict):
+class IncidentState(TypedDict, total=False):
     incident_id: str
     status: Literal["OPEN", "INVESTIGATING", "PROPOSED", "RESOLVED", "REJECTED"]
     raw_event: dict

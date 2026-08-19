@@ -1,12 +1,22 @@
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from langgraph.types import Command
 
 from agents.graph import app as langgraph_app
+from agents.state import IncidentState
 from api.websockets import manager
 from core.models import Incident, IncidentCreate, IncidentResponse, IncidentStatus
+
+logger = logging.getLogger(__name__)
+
+def _log_task_result(task: asyncio.Task):
+    try:
+        task.result()
+    except Exception as e:
+        logger.error(f"Background task failed: {e}")
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -31,15 +41,16 @@ async def create_incident(incident_in: IncidentCreate):
     })
     
     # Trigger LangGraph state machine in the background
-    initial_state = {
+    initial_state: IncidentState = {
         "incident_id": incident.id,
-        "status": incident.status.value,
+        "status": incident.status.value,  # type: ignore
         "raw_event": incident.raw_event or {},
         "evidence": [],
         "messages": [f"Incident {incident.id} created"]
     }
     config = {"configurable": {"thread_id": incident.id}}
-    asyncio.create_task(langgraph_app.ainvoke(initial_state, config))
+    task = asyncio.create_task(langgraph_app.ainvoke(initial_state, config)) # type: ignore
+    task.add_done_callback(_log_task_result)
     
     return incident
 
@@ -79,7 +90,8 @@ async def approve_incident(incident_id: str):
     
     # Resume LangGraph execution from the HITL pause node
     config = {"configurable": {"thread_id": incident_id}}
-    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config))
+    task = asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config)) # type: ignore
+    task.add_done_callback(_log_task_result)
     
     return incident
 
@@ -109,7 +121,8 @@ async def reject_incident(incident_id: str):
     
     # Resume LangGraph execution with a rejection
     config = {"configurable": {"thread_id": incident_id}}
-    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config))
+    task = asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config)) # type: ignore
+    task.add_done_callback(_log_task_result)
     
     return incident
 

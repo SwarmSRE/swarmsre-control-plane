@@ -80,7 +80,9 @@ class MockMCPClient:
     async def close(self):
         pass
 
+
 # Instantiate the client based on environment
+mcp: MCPClient | MockMCPClient
 if os.environ.get("MCP_SERVER_URL"):
     mcp = MCPClient()
 else:
