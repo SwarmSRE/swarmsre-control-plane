@@ -31,6 +31,12 @@ graph.add_node("propose", propose_node)
 graph.add_node("execute", execute_node)
 graph.add_node("evaluate", evaluate_node)
 
+def evaluate_route(state: IncidentState) -> str:
+    """Route to propose if evaluate fails, else END."""
+    if state.get("status") == "INVESTIGATING":
+        return "propose"
+    return END
+
 # Add edges
 graph.add_edge(START, "triage")
 graph.add_conditional_edges("triage", should_investigate)
@@ -41,7 +47,7 @@ graph.add_edge("synthesize", "propose")
 # HITL pause happens inside propose_node via interrupt()
 graph.add_edge("propose", "execute")
 graph.add_edge("execute", "evaluate")
-graph.add_edge("evaluate", END)
+graph.add_conditional_edges("evaluate", evaluate_route)
 
 # Compile with checkpointer
 checkpointer = MemorySaver()
