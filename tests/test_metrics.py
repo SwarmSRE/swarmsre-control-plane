@@ -3,21 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from core.audit_logger import AuditLogger
+from core.audit_logger import audit_logger
 from core.models import AuditAction, AuditEntry
-
-
-@pytest.fixture()
-def _isolated_audit(tmp_path, monkeypatch):
-    """Replace the global audit_logger singleton with a tmp_path-backed instance."""
-    isolated_logger = AuditLogger(sqlite_path=tmp_path / "test_audit.db")
-
-    # Patch the singleton used by the metrics endpoint and the audit API
-    import api.audit
-    import api.metrics
-    monkeypatch.setattr(api.metrics, "audit_logger", isolated_logger)
-    monkeypatch.setattr(api.audit, "audit_logger", isolated_logger)
-    return isolated_logger
 
 
 @pytest.fixture()
@@ -26,36 +13,34 @@ def client():
     return TestClient(app)
 
 
-@pytest.mark.usefixtures("_isolated_audit")
-def test_dora_metrics(_isolated_audit, client):
-    logger = _isolated_audit
+def test_dora_metrics(client):
     now = datetime.now(UTC)
 
     # Incident 1: 1 hour MTTR, 10 mins Lead Time
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-1", action=AuditAction.INCIDENT_CREATED, timestamp=now - timedelta(hours=1)
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-1", action=AuditAction.PATCH_PROPOSED, timestamp=now - timedelta(minutes=10)
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-1", action=AuditAction.PATCH_EXECUTED, timestamp=now
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-1", action=AuditAction.EVALUATION_COMPLETED, timestamp=now
     ))
 
     # Incident 2: 2 hours MTTR, 20 mins Lead Time
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-2", action=AuditAction.INCIDENT_CREATED, timestamp=now - timedelta(hours=2)
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-2", action=AuditAction.PATCH_PROPOSED, timestamp=now - timedelta(minutes=20)
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-2", action=AuditAction.PATCH_EXECUTED, timestamp=now
     ))
-    logger.record_audit(AuditEntry(
+    audit_logger.record_audit(AuditEntry(
         incident_id="inc-2", action=AuditAction.EVALUATION_COMPLETED, timestamp=now
     ))
 
