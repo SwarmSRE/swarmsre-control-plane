@@ -35,6 +35,8 @@ class IncidentResponse(BaseModel):
     raw_event: dict[str, Any] | None = None
     rca_summary: str | None = None
     proposed_patch: str | None = None
+    confidence_score: float | None = None
+    evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
 
 class Incident(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -47,6 +49,8 @@ class Incident(BaseModel):
     raw_event: dict[str, Any] | None = None
     rca_summary: str | None = None
     proposed_patch: str | None = None
+    confidence_score: float | None = None
+    evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
 
 class AuditAction(str, Enum):
     INCIDENT_CREATED = "INCIDENT_CREATED"
