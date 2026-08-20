@@ -195,6 +195,7 @@ class AuditLogger:
     """Unified audit logger that delegates to PostgreSQL or SQLite."""
 
     def __init__(self, *, database_url: str = "", sqlite_path: str | Path = SQLITE_PATH):
+        self._backend: _PostgreSQLBackend | _SQLiteBackend
         if database_url:
             logger.info("Using PostgreSQL backend for audit logging.")
             self._backend = _PostgreSQLBackend(dsn=database_url)
