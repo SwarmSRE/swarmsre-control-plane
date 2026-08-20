@@ -1,12 +1,10 @@
-from unittest.mock import MagicMock
 
 import pytest
+from langchain_core.runnables import RunnableLambda
 
 from agents.nodes.log_hunter import LogHunterOutput, log_hunter_node
 from agents.state import IncidentState
 
-
-from langchain_core.runnables import RunnableLambda
 
 @pytest.fixture
 def mock_get_worker_llm(monkeypatch):
