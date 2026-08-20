@@ -3,6 +3,7 @@ import './index.css';
 import { useIncidents } from './hooks/useIncidents';
 import { StatusBanner } from './components/StatusBanner';
 import { IncidentTimeline } from './components/IncidentTimeline';
+import { RCAPanel } from './components/RCAPanel';
 import type { Incident } from './hooks/useIncidents';
 
 type Tab = 'dashboard' | 'topology' | 'audit';
@@ -73,69 +74,13 @@ function App() {
               onSelect={setSelectedIncident}
               selectedId={selectedIncident?.id}
             />
-            <div className="glass-card animate-fade-in" id="rca-panel-placeholder">
-              <div className="card-header">
-                <h2>RCA Panel</h2>
-              </div>
-              {selectedIncident ? (
-                <div>
-                  <h3 style={{ marginBottom: 'var(--space-md)', fontSize: '0.95rem' }}>
-                    {selectedIncident.title}
-                  </h3>
-                  <div style={{ marginBottom: 'var(--space-md)' }}>
-                    <span className={`status-pill ${selectedIncident.status.toLowerCase()}`}>
-                      {selectedIncident.status}
-                    </span>
-                  </div>
-                  {selectedIncident.rca_summary && (
-                    <div style={{ marginBottom: 'var(--space-md)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--space-xs)' }}>
-                        Root Cause Analysis
-                      </div>
-                      <p style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>
-                        {selectedIncident.rca_summary}
-                      </p>
-                    </div>
-                  )}
-                  {selectedIncident.confidence_score != null && (
-                    <div style={{ marginBottom: 'var(--space-md)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--space-xs)' }}>
-                        Confidence
-                      </div>
-                      <div style={{
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        color: selectedIncident.confidence_score >= 0.8 ? 'var(--status-green)' : selectedIncident.confidence_score >= 0.5 ? 'var(--status-yellow)' : 'var(--status-red)'
-                      }}>
-                        {(selectedIncident.confidence_score * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                  )}
-                  {selectedIncident.proposed_patch && (
-                    <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--space-xs)' }}>
-                        Proposed Patch
-                      </div>
-                      <pre style={{
-                        background: 'rgba(0,0,0,0.3)',
-                        padding: 'var(--space-md)',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '0.75rem',
-                        fontFamily: 'var(--font-mono)',
-                        overflowX: 'auto',
-                        color: 'var(--status-green)',
-                      }}>
-                        {selectedIncident.proposed_patch}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-xl)' }}>
-                  Select an incident to view the Root Cause Analysis.
-                </p>
-              )}
-            </div>
+            <RCAPanel 
+              incident={selectedIncident} 
+              onRefreshNeeded={() => {
+                // If a manual fetch is needed, you can trigger it here.
+                // Currently WebSocket will auto-update state in useIncidents.
+              }} 
+            />
           </div>
         )}
 
