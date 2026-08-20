@@ -16,24 +16,26 @@ def get_dora_metrics():
     """
     entries = audit_logger.get_all_entries()
     
-    # Group by incident_id
-    incident_timings = defaultdict(dict)
+    # Group by incident_id, keeping all timestamps per action
+    incident_timings: dict[str, dict[AuditAction, list]] = defaultdict(lambda: defaultdict(list))
     for entry in entries:
-        incident_timings[entry.incident_id][entry.action] = entry.timestamp
+        incident_timings[entry.incident_id][entry.action].append(entry.timestamp)
 
     mttr_seconds = []
     lead_time_seconds = []
 
     for timings in incident_timings.values():
-        # MTTR: Created -> Evaluation Completed
+        # MTTR: earliest INCIDENT_CREATED -> latest EVALUATION_COMPLETED
         if AuditAction.INCIDENT_CREATED in timings and AuditAction.EVALUATION_COMPLETED in timings:
-            duration = (timings[AuditAction.EVALUATION_COMPLETED] - timings[AuditAction.INCIDENT_CREATED]).total_seconds()
-            mttr_seconds.append(duration)
+            start = min(timings[AuditAction.INCIDENT_CREATED])
+            end = max(timings[AuditAction.EVALUATION_COMPLETED])
+            mttr_seconds.append((end - start).total_seconds())
             
-        # Lead Time: Proposed -> Executed
+        # Lead Time: earliest PATCH_PROPOSED -> latest PATCH_EXECUTED
         if AuditAction.PATCH_PROPOSED in timings and AuditAction.PATCH_EXECUTED in timings:
-            duration = (timings[AuditAction.PATCH_EXECUTED] - timings[AuditAction.PATCH_PROPOSED]).total_seconds()
-            lead_time_seconds.append(duration)
+            start = min(timings[AuditAction.PATCH_PROPOSED])
+            end = max(timings[AuditAction.PATCH_EXECUTED])
+            lead_time_seconds.append((end - start).total_seconds())
             
     avg_mttr = sum(mttr_seconds) / len(mttr_seconds) if mttr_seconds else 0.0
     avg_lead_time = sum(lead_time_seconds) / len(lead_time_seconds) if lead_time_seconds else 0.0

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from agents.state import IncidentState
@@ -9,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 async def investigate_node(state: IncidentState) -> dict:
     """Fetches pod logs and events using the MCP client."""
-    logger.info(f"Running investigation for incident {state.get('incident_id')}")
+    incident_id = state.get("incident_id")
+    logger.info(f"Running investigation for incident {incident_id}")
     
     event = state.get("raw_event", {})
     involved = event.get("involved_object", {})
@@ -31,12 +33,16 @@ async def investigate_node(state: IncidentState) -> dict:
             "events": events
         }
 
-        audit_logger.record_audit(AuditEntry(
-            incident_id=state.get("incident_id"),
-            action=AuditAction.INVESTIGATION_COMPLETED,
-            actor="ai-agent",
-            details={"pod": pod_name, "namespace": namespace}
-        ))
+        if incident_id:
+            await asyncio.to_thread(
+                audit_logger.record_audit,
+                AuditEntry(
+                    incident_id=incident_id,
+                    action=AuditAction.INVESTIGATION_COMPLETED,
+                    actor="ai-agent",
+                    details={"pod": pod_name, "namespace": namespace},
+                ),
+            )
         
         return {"evidence": [evidence_item], "messages": ["Investigation complete"]}
     except Exception as e:

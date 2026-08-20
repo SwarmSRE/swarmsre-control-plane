@@ -9,7 +9,7 @@ from core.models import AuditAction, AuditEntry
 @pytest.fixture
 def mock_logger(tmp_path):
     db_path = tmp_path / "test_audit.db"
-    return AuditLogger(db_path=db_path)
+    return AuditLogger(sqlite_path=db_path)
 
 def test_record_and_retrieve_audit(mock_logger):
     entry = AuditEntry(

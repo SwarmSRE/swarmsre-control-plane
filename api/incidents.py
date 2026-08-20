@@ -48,12 +48,15 @@ async def create_incident(incident_in: IncidentCreate):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log
-    audit_logger.record_audit(AuditEntry(
-        incident_id=incident.id,
-        action=AuditAction.INCIDENT_CREATED,
-        details={"title": incident.title, "source": incident.source}
-    ))
+    # Audit log (offloaded to thread to avoid blocking the event loop)
+    await asyncio.to_thread(
+        audit_logger.record_audit,
+        AuditEntry(
+            incident_id=incident.id,
+            action=AuditAction.INCIDENT_CREATED,
+            details={"title": incident.title, "source": incident.source},
+        ),
+    )
     
     # Trigger LangGraph state machine in the background
     initial_state: IncidentState = {
@@ -103,12 +106,15 @@ async def approve_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log
-    audit_logger.record_audit(AuditEntry(
-        incident_id=incident_id,
-        action=AuditAction.PATCH_APPROVED,
-        actor="human-approver"
-    ))
+    # Audit log (offloaded to thread to avoid blocking the event loop)
+    await asyncio.to_thread(
+        audit_logger.record_audit,
+        AuditEntry(
+            incident_id=incident_id,
+            action=AuditAction.PATCH_APPROVED,
+            actor="human-approver",
+        ),
+    )
     
     # Resume LangGraph execution from the HITL pause node
     config = {"configurable": {"thread_id": incident_id}}
@@ -141,12 +147,15 @@ async def reject_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log
-    audit_logger.record_audit(AuditEntry(
-        incident_id=incident_id,
-        action=AuditAction.PATCH_REJECTED,
-        actor="human-approver"
-    ))
+    # Audit log (offloaded to thread to avoid blocking the event loop)
+    await asyncio.to_thread(
+        audit_logger.record_audit,
+        AuditEntry(
+            incident_id=incident_id,
+            action=AuditAction.PATCH_REJECTED,
+            actor="human-approver",
+        ),
+    )
     
     # Resume LangGraph execution with a rejection
     config = {"configurable": {"thread_id": incident_id}}
