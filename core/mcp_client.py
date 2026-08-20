@@ -64,6 +64,21 @@ class MCPClient:
         command = f"kubectl top pod {pod_name} -n {namespace}"
         return await self.call_kubectl(command)
 
+    async def apply_patch(self, patch_yaml: str) -> str:
+        """Apply a YAML patch using kubectl apply -f via the MCP server."""
+        # For simplicity in this demo, we assume the MCP server can handle applying from stdin
+        # Real implementation would likely send the content and have the MCP server write to a temp file
+        logger.info("Calling MCP kubectl apply")
+        result = await self._call_tool("apply_patch", {"yaml": patch_yaml})
+        
+        if result.get("status") == "failed":
+            raise RuntimeError(f"MCP apply patch failed: {result.get('error')}")
+            
+        content = result.get("content", [])
+        if content and content[0].get("type") == "text":
+            return content[0].get("text", "")
+        return str(result)
+
     async def close(self):
         await self.client.aclose()
 
@@ -85,6 +100,10 @@ class MockMCPClient:
     async def fetch_pod_top(self, namespace: str, pod_name: str) -> str:
         logger.info(f"Mock fetching top for {namespace}/{pod_name}")
         return "NAME                          CPU(cores)   MEMORY(bytes)\nbackend-service-abc123        1500m        1024Mi"
+
+    async def apply_patch(self, patch_yaml: str) -> str:
+        logger.info(f"Mock applying patch:\n{patch_yaml}")
+        return "pod/backend-service-abc123 patched"
 
     async def close(self):
         pass
