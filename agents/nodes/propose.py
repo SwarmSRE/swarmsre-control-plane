@@ -7,16 +7,17 @@ from agents.state import IncidentState
 from core.audit_logger import audit_logger
 from core.models import AuditAction, AuditEntry
 from core.safety_gate import validate_kubernetes_patch
+from core.slack import slack_client
 
 logger = logging.getLogger(__name__)
 
-def propose_node(state: IncidentState) -> dict:
+async def propose_node(state: IncidentState) -> dict:
     """Proposes a remediation, checks safety, and pauses for human approval."""
     incident_id = state.get("incident_id")
     logger.info(f"Running propose for incident {incident_id}")
     
-    patch = state.get("proposed_patch", "")
-    rca = state.get("rca_summary", "")
+    patch = state.get("proposed_patch") or ""
+    rca = state.get("rca_summary") or ""
     confidence = state.get("confidence_score", 0.0)
     
     if not patch:
@@ -60,6 +61,8 @@ def propose_node(state: IncidentState) -> dict:
             actor="ai-agent",
             details={"rca": rca, "confidence": confidence}
         ))
+        
+        await slack_client.send_proposal_notification(incident_id, rca, confidence)
     
     # Pause the graph and send the proposal to the human
     # The graph will wait here until `Command(resume=...)` is invoked
