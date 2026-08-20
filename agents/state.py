@@ -12,4 +12,5 @@ class IncidentState(TypedDict, total=False):
     rca_summary: str | None
     proposed_patch: str | None
     confidence_score: float
+    opa_result: dict | None
     messages: Annotated[list[str], operator.add]
