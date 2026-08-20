@@ -7,6 +7,7 @@ from agents.nodes.investigate import investigate_node
 from agents.nodes.log_hunter import log_hunter_node
 from agents.nodes.propose import propose_node
 from agents.nodes.synthesize import synthesize_node
+from agents.nodes.telemetry_analyst import telemetry_analyst_node
 from agents.nodes.triage import triage_node
 from agents.state import IncidentState
 
@@ -24,6 +25,7 @@ graph = StateGraph(IncidentState)
 graph.add_node("triage", triage_node)
 graph.add_node("investigate", investigate_node)
 graph.add_node("log_hunter", log_hunter_node)
+graph.add_node("telemetry_analyst", telemetry_analyst_node)
 graph.add_node("synthesize", synthesize_node)
 graph.add_node("propose", propose_node)
 graph.add_node("execute", execute_node)
@@ -33,7 +35,8 @@ graph.add_node("evaluate", evaluate_node)
 graph.add_edge(START, "triage")
 graph.add_conditional_edges("triage", should_investigate)
 graph.add_edge("investigate", "log_hunter")
-graph.add_edge("log_hunter", "synthesize")
+graph.add_edge("investigate", "telemetry_analyst")
+graph.add_edge(["log_hunter", "telemetry_analyst"], "synthesize")
 graph.add_edge("synthesize", "propose")
 # HITL pause happens inside propose_node via interrupt()
 graph.add_edge("propose", "execute")

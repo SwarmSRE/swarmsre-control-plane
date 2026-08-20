@@ -59,6 +59,11 @@ class MCPClient:
         command = f"kubectl get pod {pod_name} -n {namespace} -o json"
         return await self.call_kubectl(command)
 
+    async def fetch_pod_top(self, namespace: str, pod_name: str) -> str:
+        """Fetch the resource usage (top) of a pod."""
+        command = f"kubectl top pod {pod_name} -n {namespace}"
+        return await self.call_kubectl(command)
+
     async def close(self):
         await self.client.aclose()
 
@@ -76,6 +81,10 @@ class MockMCPClient:
     async def fetch_pod_status(self, namespace: str, pod_name: str) -> str:
         logger.info(f"Mock fetching status for {namespace}/{pod_name}")
         return '{"status": {"phase": "Running", "containerStatuses": [{"restartCount": 5}]}}'
+
+    async def fetch_pod_top(self, namespace: str, pod_name: str) -> str:
+        logger.info(f"Mock fetching top for {namespace}/{pod_name}")
+        return "NAME                          CPU(cores)   MEMORY(bytes)\nbackend-service-abc123        1500m        1024Mi"
 
     async def close(self):
         pass
