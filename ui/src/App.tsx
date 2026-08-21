@@ -4,6 +4,7 @@ import { useIncidents } from './hooks/useIncidents';
 import { StatusBanner } from './components/StatusBanner';
 import { IncidentTimeline } from './components/IncidentTimeline';
 import { RCAPanel } from './components/RCAPanel';
+import { AuditTrail } from './visualizations/AuditTrail';
 import { TopologyGraph } from './visualizations/TopologyGraph';
 import type { TopologyData } from './visualizations/topology-data';
 import type { Incident } from './hooks/useIncidents';
@@ -113,13 +114,13 @@ function App() {
         )}
 
         {activeTab === 'audit' && (
-          <div className="glass-card animate-fade-in">
+          <div className="glass-card animate-fade-in" style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
             <div className="card-header">
               <h2>Audit Trail</h2>
             </div>
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-2xl)' }}>
-              Full audit trail viewer will be added in Sprint 13.
-            </p>
+            <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
+              <AuditTrail />
+            </div>
           </div>
         )}
 

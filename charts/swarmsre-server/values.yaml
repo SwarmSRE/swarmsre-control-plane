@@ -1,0 +1,16 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/swarmsre/swarmsre-server
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+env:
+  ENVIRONMENT: production
+  DATABASE_URL: ""
+  ORCHESTRATOR_MODEL: "gemini-1.5-pro"
+  WORKER_MODEL: "llama3-70b-8192"

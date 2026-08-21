@@ -1,0 +1,15 @@
+replicaCount: 1
+
+mcpServer:
+  image: 
+    repository: ghcr.io/swarmsre/mcp-kubernetes
+    tag: latest
+    pullPolicy: IfNotPresent
+
+rbac:
+  # allowed values: readonly, standard, admin
+  profile: readonly
+
+service:
+  type: ClusterIP
+  port: 3000
