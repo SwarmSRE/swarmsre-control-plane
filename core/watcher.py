@@ -17,6 +17,7 @@ TARGET_EVENT_REASONS = frozenset({
     "Unhealthy",
     "ImagePullBackOff",
     "ErrImagePull",
+    "Failed",
 })
 
 def get_k8s_client() -> client.CoreV1Api:

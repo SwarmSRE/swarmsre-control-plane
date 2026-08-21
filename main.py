@@ -2,8 +2,11 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
+
+load_dotenv()
 
 from api import audit, incidents, metrics, topology, websockets
 from core.watcher import watch_events
