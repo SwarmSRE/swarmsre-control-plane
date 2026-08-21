@@ -1,8 +1,10 @@
 """Global test fixtures — patches the audit_logger singleton with an in-memory backend."""
 
 import pytest
+from fastapi.testclient import TestClient
 
 from core.models import AuditEntry
+from main import app
 
 
 class InMemoryBackend:
@@ -31,3 +33,8 @@ def _patch_audit_logger(monkeypatch):
 
     in_mem = InMemoryBackend()
     monkeypatch.setattr(audit_module.audit_logger, "_backend", in_mem)
+
+@pytest.fixture
+def test_client():
+    """Provides a FastAPI TestClient."""
+    return TestClient(app)
