@@ -20,17 +20,59 @@ from core.models import (
 
 logger = logging.getLogger(__name__)
 
-def _log_task_result(task: asyncio.Task):
-    try:
-        task.result()
-    except Exception as e:
-        logger.error(f"Background task failed: {e}")
-
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
-# In-memory store for MVP
-# In a production scenario this would be a database (PostgreSQL, MongoDB)
+# In-memory store for MVP incidents
 db: dict[str, Incident] = {}
+
+async def _run_incident_workflow(incident_id: str, initial_state: IncidentState, config: dict):
+    """Executes the LangGraph multi-agent swarm and updates incident state in real-time."""
+    try:
+        if incident_id in db:
+            db[incident_id].status = IncidentStatus.INVESTIGATING
+            db[incident_id].updated_at = datetime.now(UTC)
+            await manager.broadcast({
+                "type": "INCIDENT_UPDATED",
+                "data": db[incident_id].model_dump(mode="json")
+            })
+
+        # Run multi-agent graph (triage -> investigate -> log_hunter/telemetry -> synthesize -> propose)
+        await langgraph_app.ainvoke(initial_state, config)
+
+        # Retrieve checkpointed state
+        graph_state = await langgraph_app.aget_state(config)
+        values = graph_state.values if graph_state else {}
+
+        if incident_id in db:
+            incident = db[incident_id]
+            if values.get("rca_summary"):
+                incident.rca_summary = values["rca_summary"]
+            if values.get("proposed_patch"):
+                incident.proposed_patch = values["proposed_patch"]
+            if values.get("confidence_score") is not None:
+                incident.confidence_score = float(values["confidence_score"])
+            if values.get("evidence"):
+                incident.evidence = values["evidence"]
+
+            # Set status to PROPOSED when patch is ready for approval
+            if incident.proposed_patch or (values.get("rca_summary") and values.get("status") != "REJECTED"):
+                incident.status = IncidentStatus.PROPOSED
+            elif values.get("status") in ["RESOLVED", "REJECTED"]:
+                incident.status = IncidentStatus(values["status"])
+            else:
+                incident.status = IncidentStatus.PROPOSED
+
+            incident.updated_at = datetime.now(UTC)
+            db[incident_id] = incident
+
+            # Broadcast the updated incident with RCA, Patch, and PROPOSED status
+            await manager.broadcast({
+                "type": "INCIDENT_UPDATED",
+                "data": incident.model_dump(mode="json")
+            })
+    except Exception as e:
+        logger.error(f"Incident workflow failed for {incident_id}: {e}", exc_info=True)
+
 
 @router.post("", response_model=IncidentResponse)
 async def create_incident(incident_in: IncidentCreate):
@@ -48,7 +90,7 @@ async def create_incident(incident_in: IncidentCreate):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log (offloaded to thread to avoid blocking the event loop)
+    # Audit log
     await asyncio.to_thread(
         audit_logger.record_audit,
         AuditEntry(
@@ -61,14 +103,13 @@ async def create_incident(incident_in: IncidentCreate):
     # Trigger LangGraph state machine in the background
     initial_state: IncidentState = {
         "incident_id": incident.id,
-        "status": incident.status.value,  # type: ignore
+        "status": incident.status.value,
         "raw_event": incident.raw_event or {},
         "evidence": [],
         "messages": [f"Incident {incident.id} created"]
     }
     config = {"configurable": {"thread_id": incident.id}}
-    task = asyncio.create_task(langgraph_app.ainvoke(initial_state, config)) # type: ignore
-    task.add_done_callback(_log_task_result)
+    asyncio.create_task(_run_incident_workflow(incident.id, initial_state, config))
     
     return incident
 
@@ -106,7 +147,7 @@ async def approve_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log (offloaded to thread to avoid blocking the event loop)
+    # Audit log
     await asyncio.to_thread(
         audit_logger.record_audit,
         AuditEntry(
@@ -116,10 +157,9 @@ async def approve_incident(incident_id: str):
         ),
     )
     
-    # Resume LangGraph execution from the HITL pause node
+    # Resume LangGraph execution from the HITL pause node to apply patch
     config = {"configurable": {"thread_id": incident_id}}
-    task = asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config)) # type: ignore
-    task.add_done_callback(_log_task_result)
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config))
     
     return incident
 
@@ -147,7 +187,7 @@ async def reject_incident(incident_id: str):
         "data": incident.model_dump(mode='json')
     })
     
-    # Audit log (offloaded to thread to avoid blocking the event loop)
+    # Audit log
     await asyncio.to_thread(
         audit_logger.record_audit,
         AuditEntry(
@@ -159,8 +199,7 @@ async def reject_incident(incident_id: str):
     
     # Resume LangGraph execution with a rejection
     config = {"configurable": {"thread_id": incident_id}}
-    task = asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config)) # type: ignore
-    task.add_done_callback(_log_task_result)
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config))
     
     return incident
 
@@ -173,3 +212,4 @@ async def on_incident_detected(incident_data: dict):
         raw_event=incident_data
     )
     await create_incident(incident_in)
+
