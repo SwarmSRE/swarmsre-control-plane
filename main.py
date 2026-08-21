@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
-from api import audit, incidents, metrics, websockets
+from api import audit, incidents, metrics, topology, websockets
 from core.watcher import watch_events
 
 
@@ -29,6 +29,7 @@ app.include_router(incidents.router)
 app.include_router(websockets.router)
 app.include_router(audit.router)
 app.include_router(metrics.router)
+app.include_router(topology.router)
 
 @app.get("/health", tags=["system"])
 async def health_check():

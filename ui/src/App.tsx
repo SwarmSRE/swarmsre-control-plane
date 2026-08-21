@@ -4,6 +4,8 @@ import { useIncidents } from './hooks/useIncidents';
 import { StatusBanner } from './components/StatusBanner';
 import { IncidentTimeline } from './components/IncidentTimeline';
 import { RCAPanel } from './components/RCAPanel';
+import { TopologyGraph } from './visualizations/TopologyGraph';
+import type { TopologyData } from './visualizations/topology-data';
 import type { Incident } from './hooks/useIncidents';
 
 type Tab = 'dashboard' | 'topology' | 'audit';
@@ -12,7 +14,16 @@ function App() {
   const { incidents, loading, isConnected, getStatusCounts } = useIncidents();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [topologyData, setTopologyData] = useState<TopologyData | null>(null);
   const counts = getStatusCounts();
+
+  // Fetch topology data when tab is selected
+  useState(() => {
+    fetch('/api/topology')
+      .then(res => res.json())
+      .then(data => setTopologyData(data))
+      .catch(console.error);
+  });
 
   return (
     <div className="app-layout">
@@ -85,13 +96,19 @@ function App() {
         )}
 
         {activeTab === 'topology' && (
-          <div className="glass-card animate-fade-in">
+          <div className="glass-card animate-fade-in" style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
             <div className="card-header">
               <h2>Service Topology</h2>
             </div>
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-2xl)' }}>
-              D3.js topology graph will be added in Sprint 11.
-            </p>
+            <div style={{ flex: 1, position: 'relative' }}>
+              {topologyData ? (
+                <TopologyGraph data={topologyData} />
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                  Loading topology...
+                </div>
+              )}
+            </div>
           </div>
         )}
 
