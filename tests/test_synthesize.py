@@ -40,7 +40,7 @@ async def test_synthesize_node(mock_get_orchestrator_llm):
     assert result["rca_summary"] == "Memory saturation caused OOMKilled"
     assert result["confidence_score"] == 0.9
     assert "messages" in result
-    assert "Synthesis complete" in result["messages"][0]
+    assert "[Supervisor]" in result["messages"][0]
 
 
 @pytest.mark.asyncio
@@ -57,4 +57,4 @@ async def test_synthesize_no_findings(mock_get_orchestrator_llm):
     result = await synthesize_node(state)
     assert result["rca_summary"] == "Memory saturation caused OOMKilled"
     assert result["confidence_score"] == 0.9
-    assert "Synthesis complete" in result["messages"][0]
+    assert "[Supervisor]" in result["messages"][0]

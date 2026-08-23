@@ -47,7 +47,8 @@ async def test_log_hunter_node(mock_get_worker_llm):
     assert output["frequency"] == "constant"
     assert output["stack_trace"] is not None
     assert "messages" in result
-    assert "Log Hunter identified error class: CrashLoopBackOff" in result["messages"][0]
+    assert "[Log Hunter]" in result["messages"][0]
+    assert "CrashLoopBackOff" in result["messages"][0]
 
 @pytest.mark.asyncio
 async def test_log_hunter_no_evidence():

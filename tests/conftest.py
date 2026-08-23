@@ -1,5 +1,13 @@
 """Global test fixtures — patches the audit_logger singleton with an in-memory backend."""
 
+import os
+
+# Must be set before importing the app so MCPClient() doesn't raise at module level.
+# In CI, MCP is not running; all MCP calls are patched per-test.
+os.environ.setdefault("MCP_SERVER_URL", "http://localhost:3000")
+os.environ.setdefault("GOOGLE_API_KEY", "test-key-ci")
+os.environ.setdefault("OPENAI_API_KEY", "test-key-ci")
+
 import pytest
 from fastapi.testclient import TestClient
 

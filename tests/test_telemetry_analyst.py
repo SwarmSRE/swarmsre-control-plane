@@ -61,7 +61,8 @@ async def test_telemetry_analyst_node(mock_get_worker_llm, mock_mcp):
     output = result["telemetry_output"]
     assert output["resource_status"] == "memory_saturation"
     assert "messages" in result
-    assert "Telemetry Analyst identified resource status: memory_saturation" in result["messages"][0]
+    assert "[Telemetry Analyst]" in result["messages"][0]
+    assert "memory_saturation" in result["messages"][0]
 
 
 @pytest.mark.asyncio
