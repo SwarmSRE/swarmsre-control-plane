@@ -60,6 +60,5 @@ async def test_log_hunter_no_evidence():
         "confidence_score": 0.0
     }
     
-    result = await log_hunter_node(state)
-    assert "log_hunter_output" not in result
-    assert "Log Hunter skipped" in result["messages"][0]
+    with pytest.raises(ValueError, match="no evidence available"):
+        await log_hunter_node(state)

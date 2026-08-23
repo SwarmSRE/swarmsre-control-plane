@@ -44,7 +44,7 @@ async def test_synthesize_node(mock_get_orchestrator_llm):
 
 
 @pytest.mark.asyncio
-async def test_synthesize_no_findings():
+async def test_synthesize_no_findings(mock_get_orchestrator_llm):
     state: IncidentState = {
         "incident_id": "test-inc-2",
         "status": "INVESTIGATING",
