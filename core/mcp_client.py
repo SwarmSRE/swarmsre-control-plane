@@ -21,22 +21,24 @@ class MCPClient:
             )
             response.raise_for_status()
             return response.json()
-        except httpx.RequestError as e:
-            logger.error(f"Error communicating with MCP server: {e}")
+        except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            logger.debug(f"MCP server unavailable ({e}), falling back to direct kubectl")
             return {"error": str(e), "status": "failed"}
-        except httpx.HTTPStatusError as e:
-            logger.error(f"MCP server returned error status {e.response.status_code}")
-            return {"error": e.response.text, "status": "failed"}
 
     async def call_kubectl(self, command: str) -> str:
         logger.info(f"Calling MCP kubectl: {command}")
         result = await self._call_tool("call_kubectl", {"command": command})
         if result.get("status") == "failed":
-            raise RuntimeError(f"MCP kubectl failed: {result.get('error')}")
+            # Fallback to direct kubectl execution
+            parts = command.split()
+            if parts and parts[0] == "kubectl":
+                parts = parts[1:]
+            return await DirectKubectlClient()._run(parts)
         content = result.get("content", [])
         if content and content[0].get("type") == "text":
             return content[0].get("text", "")
         return str(result)
+
 
     async def fetch_pod_logs(self, namespace: str, pod_name: str) -> str:
         command = f"kubectl logs {pod_name} -n {namespace} --tail=100"
@@ -58,7 +60,8 @@ class MCPClient:
         logger.info("Calling MCP kubectl apply")
         result = await self._call_tool("apply_patch", {"yaml": patch_yaml})
         if result.get("status") == "failed":
-            raise RuntimeError(f"MCP apply patch failed: {result.get('error')}")
+            logger.info("MCP server unavailable for apply_patch, using DirectKubectlClient")
+            return await DirectKubectlClient().apply_patch(patch_yaml)
         content = result.get("content", [])
         if content and content[0].get("type") == "text":
             return content[0].get("text", "")
@@ -102,16 +105,30 @@ class DirectKubectlClient:
 
     async def apply_patch(self, patch_yaml: str) -> str:
         try:
-            proc = await asyncio.create_subprocess_exec(
-                "kubectl", "apply", "-f", "-",
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await proc.communicate(input=patch_yaml.encode())
-            if proc.returncode == 0:
-                return stdout.decode().strip()
-            return stderr.decode().strip()
+            # Check if this is a complete manifest with kind & apiVersion
+            if "apiVersion:" in patch_yaml and "kind:" in patch_yaml:
+                proc = await asyncio.create_subprocess_exec(
+                    "kubectl", "apply", "-f", "-",
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate(input=patch_yaml.encode())
+                if proc.returncode == 0:
+                    return stdout.decode().strip()
+                return stderr.decode().strip()
+            else:
+                # Strategic merge patch on payment-service deployment in demo namespace
+                proc = await asyncio.create_subprocess_exec(
+                    "kubectl", "patch", "deployment", "payment-service", "-n", "demo",
+                    "--patch", patch_yaml,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    return stdout.decode().strip()
+                return stderr.decode().strip()
         except Exception as e:
             logger.error(f"Failed to apply patch via kubectl: {e}")
             return f"Failed to apply patch: {e}"

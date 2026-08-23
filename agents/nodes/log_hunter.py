@@ -25,44 +25,40 @@ class LogHunterOutput(BaseModel):
         description="Approximate timestamp or context of when the error first appeared, or None."
     )
 
-def log_hunter_node(state: IncidentState) -> dict:
-    """Analyzes evidence logs using the worker LLM to extract structured insights."""
+async def log_hunter_node(state: IncidentState) -> dict:
+    """Analyzes evidence logs using the worker LLM asynchronously to extract structured insights."""
     incident_id = state.get("incident_id")
-    logger.info(f"Running Log Hunter for incident {incident_id}")
+    logger.info(f"Running async Log Hunter for incident {incident_id}")
     
     evidence = state.get("evidence", [])
     if not evidence:
-        return {"messages": ["Log Hunter skipped: no evidence available."]}
+        raise ValueError(f"Log Hunter failed for {incident_id}: no evidence available")
         
     # Get the latest investigation evidence
     inv_evidence = next((e for e in reversed(evidence) if e.get("source") == "investigation"), None)
     if not inv_evidence:
-        return {"messages": ["Log Hunter skipped: no investigation evidence found."]}
+        raise ValueError(f"Log Hunter failed for {incident_id}: no investigation evidence found")
         
     logs = inv_evidence.get("logs", "")
     events = inv_evidence.get("events", "")
     reason = state.get("raw_event", {}).get("reason", "Unknown")
     
     if not logs and not events:
-        return {"messages": ["Log Hunter skipped: logs and events are empty."]}
+        raise ValueError(f"Log Hunter failed for {incident_id}: logs and events are both empty")
         
-    try:
-        llm = get_worker_llm()
-        structured_llm = llm.with_structured_output(LogHunterOutput)
-        chain = log_hunter_prompt | structured_llm
-        
-        result = typing.cast(LogHunterOutput, chain.invoke({
-            "reason": reason,
-            "logs": logs[:4000],  # Truncate logs if they are too long
-            "events": events
-        }))
-        
-        logger.info(f"Log Hunter extracted error_class: {result.error_class}")
-        
-        return {
-            "log_hunter_output": result.model_dump(),
-            "messages": [f"Log Hunter identified error class: {result.error_class}"]
-        }
-    except Exception as e:
-        logger.error(f"Log Hunter failed: {e}")
-        return {"messages": [f"Log Hunter failed: {e!s}"]}
+    llm = get_worker_llm()
+    structured_llm = llm.with_structured_output(LogHunterOutput)
+    chain = log_hunter_prompt | structured_llm
+    
+    result = typing.cast(LogHunterOutput, await chain.ainvoke({
+        "reason": reason,
+        "logs": logs[:4000],  # Truncate logs if they are too long
+        "events": events
+    }))
+    
+    logger.info(f"Log Hunter extracted error_class: {result.error_class}")
+    
+    return {
+        "log_hunter_output": result.model_dump(),
+        "messages": [f"Log Hunter identified error class: {result.error_class}"]
+    }

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: swarmsre-server
-description: A Helm chart for the unified SwarmSRE Control Plane (FastAPI + React UI)
-type: application
-version: 0.1.0
-appVersion: "1.0.0"

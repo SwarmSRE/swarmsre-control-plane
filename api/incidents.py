@@ -27,15 +27,15 @@ db: dict[str, Incident] = {}
 
 async def _run_incident_workflow(incident_id: str, initial_state: IncidentState, config: dict):
     """Executes the LangGraph multi-agent swarm and updates incident state in real-time."""
-    try:
-        if incident_id in db:
-            db[incident_id].status = IncidentStatus.INVESTIGATING
-            db[incident_id].updated_at = datetime.now(UTC)
-            await manager.broadcast({
-                "type": "INCIDENT_UPDATED",
-                "data": db[incident_id].model_dump(mode="json")
-            })
+    if incident_id in db:
+        db[incident_id].status = IncidentStatus.INVESTIGATING
+        db[incident_id].updated_at = datetime.now(UTC)
+        await manager.broadcast({
+            "type": "INCIDENT_UPDATED",
+            "data": db[incident_id].model_dump(mode="json")
+        })
 
+    try:
         # Run multi-agent graph (triage -> investigate -> log_hunter/telemetry -> synthesize -> propose)
         await langgraph_app.ainvoke(initial_state, config)
 
@@ -52,7 +52,9 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
             if values.get("confidence_score") is not None:
                 incident.confidence_score = float(values["confidence_score"])
             if values.get("evidence"):
-                incident.evidence = values["evidence"]
+                incident.evidence_chain = [e if isinstance(e, dict) else {"details": str(e)} for e in values["evidence"]]
+            elif values.get("messages"):
+                incident.evidence_chain = [{"message": str(m)} for m in values["messages"]]
 
             # Set status to PROPOSED when patch is ready for approval
             if incident.proposed_patch or (values.get("rca_summary") and values.get("status") != "REJECTED"):
@@ -70,8 +72,21 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
                 "type": "INCIDENT_UPDATED",
                 "data": incident.model_dump(mode="json")
             })
+
     except Exception as e:
-        logger.error(f"Incident workflow failed for {incident_id}: {e}", exc_info=True)
+        # Fail loudly — mark FAILED and broadcast the error to the UI
+        logger.error(f"Incident workflow FAILED for {incident_id}: {e}", exc_info=True)
+        if incident_id in db:
+            db[incident_id].status = IncidentStatus.FAILED
+            db[incident_id].updated_at = datetime.now(UTC)
+            await manager.broadcast({
+                "type": "INCIDENT_FAILED",
+                "data": {
+                    **db[incident_id].model_dump(mode="json"),
+                    "error": str(e),
+                }
+            })
+        raise
 
 
 @router.post("", response_model=IncidentResponse)

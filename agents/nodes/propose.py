@@ -23,35 +23,25 @@ async def propose_node(state: IncidentState) -> dict:
     if not patch:
         return {"status": "RESOLVED", "messages": ["No patch proposed. Resolving."]}
 
-    # OPA Safety Gate
-    opa_result = {"passed": True, "denials": []}
-    try:
-        patch_dict = yaml.safe_load(patch)
-        if not isinstance(patch_dict, dict):
-            raise TypeError("Patch must be a YAML object.")
-        
-        denials = validate_kubernetes_patch(patch_dict)
-        if denials:
-            opa_result["passed"] = False
-            opa_result["denials"] = denials
-            logger.warning(f"Patch rejected by OPA safety gate: {denials}")
-    except Exception as e:
-        opa_result["passed"] = False
-        opa_result["denials"] = [f"Failed to parse or validate patch: {e!s}"]
-        logger.error(f"Safety gate evaluation error: {e}")
-
-    if not opa_result["passed"]:
+    # OPA Safety Gate — parse errors propagate loudly
+    patch_dict = yaml.safe_load(patch)
+    if not isinstance(patch_dict, dict):
+        raise TypeError(f"Proposed patch is not a valid YAML object: {type(patch_dict)}")
+    
+    denials = validate_kubernetes_patch(patch_dict)
+    if denials:
+        logger.warning(f"Patch rejected by OPA safety gate: {denials}")
         if incident_id:
             audit_logger.record_audit(AuditEntry(
                 incident_id=incident_id,
                 action=AuditAction.PATCH_REJECTED,
                 actor="system(opa)",
-                details={"denials": opa_result["denials"]}
+                details={"denials": denials}
             ))
         return {
             "status": "REJECTED",
-            "opa_result": opa_result,
-            "messages": [f"Patch rejected by safety gate: {opa_result['denials']}"]
+            "opa_result": {"passed": False, "denials": denials},
+            "messages": [f"Patch rejected by safety gate: {denials}"]
         }
 
     if incident_id:

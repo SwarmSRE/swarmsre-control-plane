@@ -27,59 +27,29 @@ export const ApprovalControls: React.FC<ApprovalControlsProps> = ({ incidentId, 
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 'var(--space-lg)',
-      marginTop: 'var(--space-xl)',
-      padding: 'var(--space-lg)',
-      backgroundColor: 'rgba(0,0,0,0.2)',
-      borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--border-subtle)',
-    }}>
-      <div style={{ flex: 1 }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 var(--space-xs) 0' }}>
+    <div className="flex items-center gap-6 mt-8 p-6 bg-black/20 rounded-xl border border-[#1E293B]">
+      <div className="flex-1">
+        <h4 className="text-sm font-semibold text-[#F8FAFC] m-0 mb-1">
           Human-in-the-Loop Required
         </h4>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+        <p className="text-xs text-[#94A3B8] m-0">
           Please review the proposed patch before the agent executes it on the cluster.
         </p>
       </div>
-      <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+      <div className="flex gap-3">
         <button
           disabled={loading}
           onClick={() => handleAction('reject')}
-          className="btn-danger"
-          style={{
-            padding: 'var(--space-sm) var(--space-md)',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            color: 'var(--status-red)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: 'var(--radius-md)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1
-          }}
+          className={`px-4 py-2 bg-transparent text-[#00F0FF] border border-[#00F0FF] rounded-lg font-medium transition-all duration-200 hover:bg-[#00F0FF]/10 ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          Reject
+          REJECT
         </button>
         <button
           disabled={loading}
           onClick={() => handleAction('approve')}
-          style={{
-            padding: 'var(--space-sm) var(--space-md)',
-            backgroundColor: 'var(--status-green)',
-            color: '#000',
-            fontWeight: 600,
-            border: 'none',
-            borderRadius: 'var(--radius-md)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-xs)'
-          }}
+          className={`px-4 py-2 bg-[#00F0FF] text-black font-semibold rounded-lg transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer flex items-center gap-2'}`}
         >
-          {loading ? 'Processing...' : 'Approve & Apply'}
+          {loading ? 'Processing...' : 'APPROVE FIX'}
         </button>
       </div>
     </div>

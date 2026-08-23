@@ -48,6 +48,17 @@ async def watch_events(
 
     w = watch.Watch()
     resource_version = ""
+    try:
+        if namespace:
+            initial_events = v1.list_namespaced_event(namespace, limit=1)
+        else:
+            initial_events = v1.list_event_for_all_namespaces(limit=1)
+        resource_version = initial_events.metadata.resource_version or ""
+        logger.info(f"Initialized watcher at current resource_version={resource_version}")
+    except Exception as e:
+        logger.warning(f"Could not get initial resource_version: {e}")
+
+    seen_recent_events: dict[str, float] = {}
     loop = asyncio.get_running_loop()
 
     def run_watch():
@@ -78,13 +89,23 @@ async def watch_events(
                     
                     reason = event_obj.reason or ""
                     if reason in TARGET_EVENT_REASONS:
+                        pod_name = event_obj.involved_object.name or ""
+                        ns = event_obj.metadata.namespace or ""
+                        event_key = f"{ns}/{pod_name}/{reason}"
+                        import time
+                        now = time.time()
+                        
+                        if event_key in seen_recent_events and (now - seen_recent_events[event_key]) < 60:
+                            continue
+                        seen_recent_events[event_key] = now
+
                         incident_data = {
                             "reason": reason,
                             "message": event_obj.message or "",
-                            "namespace": event_obj.metadata.namespace,
+                            "namespace": ns,
                             "involved_object": {
                                 "kind": event_obj.involved_object.kind,
-                                "name": event_obj.involved_object.name,
+                                "name": pod_name,
                                 "namespace": event_obj.involved_object.namespace,
                             },
                             "first_timestamp": str(event_obj.first_timestamp),

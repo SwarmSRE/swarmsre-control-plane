@@ -12,6 +12,7 @@ class IncidentStatus(str, Enum):
     PROPOSED = "PROPOSED"
     RESOLVED = "RESOLVED"
     REJECTED = "REJECTED"
+    FAILED = "FAILED"
 
 class IncidentCreate(BaseModel):
     title: str

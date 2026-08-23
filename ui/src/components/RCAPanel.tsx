@@ -12,8 +12,8 @@ interface RCAPanelProps {
 export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded }) => {
   if (!incident) {
     return (
-      <div className="glass-card animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div className="bg-[#111827]/50 backdrop-blur-md border border-[#1E293B] rounded-xl p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-[#94A3B8]">
           <p>Select an incident to view RCA</p>
         </div>
       </div>
@@ -21,62 +21,66 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
   }
 
   const isProposed = incident.status === 'PROPOSED';
+  const isFailed = incident.status === 'FAILED';
   const confidence = incident.confidence_score ?? 0;
 
   return (
-    <div className="glass-card animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className="bg-[#111827]/50 backdrop-blur-md border border-[#1E293B] rounded-xl flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="flex justify-between items-start p-6 pb-4 border-b border-[#1E293B]">
         <div>
-          <h2 style={{ margin: '0 0 var(--space-xs) 0' }}>{incident.title}</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>ID: <span style={{ fontFamily: 'var(--font-mono)' }}>{incident.id}</span></p>
+          <h2 className="text-[#F8FAFC] font-semibold text-lg m-0 mb-1">{incident.title}</h2>
+          <p className="text-xs text-[#94A3B8] m-0">ID: <span className="font-mono">{incident.id}</span></p>
         </div>
         {confidence > 0 && <ConfidenceGauge score={confidence} />}
       </div>
 
       {/* Content */}
-      <div style={{ padding: 'var(--space-xl)', overflowY: 'auto', flex: 1 }} className="custom-scrollbar">
-        
-        {/* Status Alert if not PROPOSED (resolved, rejected, etc) */}
-        {!isProposed && incident.status !== 'OPEN' && incident.status !== 'INVESTIGATING' && (
-           <div style={{
-             padding: 'var(--space-md)',
-             borderRadius: 'var(--radius-md)',
-             marginBottom: 'var(--space-xl)',
-             border: `1px solid ${incident.status === 'RESOLVED' ? 'rgba(34, 197, 94, 0.3)' : incident.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
-             backgroundColor: incident.status === 'RESOLVED' ? 'rgba(34, 197, 94, 0.1)' : incident.status === 'REJECTED' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-             color: incident.status === 'RESOLVED' ? 'var(--status-green)' : incident.status === 'REJECTED' ? 'var(--status-red)' : 'var(--status-blue)',
-           }}>
-             <div style={{ fontWeight: 600 }}>{incident.status}</div>
-             <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: 'var(--space-xs)' }}>This incident has been {incident.status.toLowerCase()}.</div>
+      <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+
+        {/* FAILED — loud error banner */}
+        {isFailed && (
+          <div className="p-6 rounded-lg mb-8 border-2 border-[#EF4444]/60 bg-[#EF4444]/15 text-[#EF4444]">
+            <div className="font-bold text-base flex items-center gap-2">
+              💥 AI Workflow FAILED
+            </div>
+            <div className="text-sm opacity-90 mt-2 font-mono whitespace-pre-wrap">
+              {incident.description}
+            </div>
+            <div className="text-xs opacity-70 mt-1">
+              Check backend logs for the full traceback.
+            </div>
+          </div>
+        )}
+
+        {/* Status Alert for non-proposed terminal states */}
+        {!isProposed && !isFailed && incident.status !== 'OPEN' && incident.status !== 'INVESTIGATING' && (
+           <div className={`p-4 rounded-lg mb-8 border ${
+             incident.status === 'RESOLVED' ? 'border-[#10B981]/30 bg-[#10B981]/10 text-[#10B981]' : 
+             incident.status === 'REJECTED' ? 'border-[#EF4444]/30 bg-[#EF4444]/10 text-[#EF4444]' : 
+             'border-[#00F0FF]/30 bg-[#00F0FF]/10 text-[#00F0FF]'
+           }`}>
+             <div className="font-semibold">{incident.status}</div>
+             <div className="text-sm opacity-80 mt-1">This incident has been {incident.status.toLowerCase()}.</div>
            </div>
         )}
 
         {/* Synthesis Details */}
         {incident.rca_summary && (
-          <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-              <span style={{ color: 'var(--text-accent)' }}>🧠</span> Root Cause Analysis
+          <div className="mb-8">
+            <h3 className="text-base font-semibold text-[#F8FAFC] mb-2 flex items-center gap-1">
+              <span className="text-[#00F0FF]">🧠</span> Root Cause Analysis
             </h3>
-            <div style={{ 
-              backgroundColor: 'rgba(0,0,0,0.2)', 
-              padding: 'var(--space-md)', 
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              whiteSpace: 'pre-wrap'
-            }}>
+            <div className="bg-black/20 p-4 rounded-lg border border-[#1E293B] text-sm text-[#94A3B8] leading-relaxed whitespace-pre-wrap">
               {incident.rca_summary}
             </div>
           </div>
         )}
 
         {incident.proposed_patch && (
-          <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-              <span style={{ color: 'var(--status-green)' }}>🛠️</span> Proposed Patch
+          <div className="mb-8">
+            <h3 className="text-base font-semibold text-[#F8FAFC] mb-2 flex items-center gap-1">
+              <span className="text-[#10B981]">🛠️</span> Proposed Patch
             </h3>
             <YAMLViewer code={incident.proposed_patch} />
           </div>

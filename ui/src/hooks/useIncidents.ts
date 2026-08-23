@@ -5,7 +5,7 @@ export interface Incident {
   id: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'INVESTIGATING' | 'PROPOSED' | 'RESOLVED' | 'REJECTED';
+  status: 'OPEN' | 'INVESTIGATING' | 'PROPOSED' | 'RESOLVED' | 'REJECTED' | 'FAILED';
   source: string;
   created_at: string;
   updated_at: string;
@@ -54,6 +54,7 @@ export function useIncidents() {
       proposed: incidents.filter(i => i.status === 'PROPOSED').length,
       resolved: incidents.filter(i => i.status === 'RESOLVED').length,
       rejected: incidents.filter(i => i.status === 'REJECTED').length,
+      failed: incidents.filter(i => i.status === 'FAILED').length,
       total: incidents.length,
     };
   }, [incidents]);

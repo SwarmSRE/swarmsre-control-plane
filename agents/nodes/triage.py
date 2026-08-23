@@ -18,10 +18,13 @@ def triage_node(state: IncidentState) -> dict:
     critical_reasons = {
         "CrashLoopBackOff", "OOMKilled", "FailedCreate", 
         "FailedMount", "FailedScheduling", "BackOff", 
-        "Unhealthy", "ImagePullBackOff", "ErrImagePull"
+        "Unhealthy", "ImagePullBackOff", "ErrImagePull", "Failed"
     }
     
-    if reason in critical_reasons:
+    msg = (event.get("message") or "").lower()
+    is_critical = reason in critical_reasons or any(k in msg for k in ["imagepullbackoff", "errimagepull", "crashloopbackoff", "oomkilled", "failed"])
+
+    if is_critical:
         if incident_id:
             audit_logger.record_audit(AuditEntry(
                 incident_id=incident_id,

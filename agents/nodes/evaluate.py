@@ -16,35 +16,28 @@ async def evaluate_node(state: IncidentState) -> dict:
     if state.get("status") == "REJECTED":
         return {"messages": ["Evaluation skipped because patch was rejected."]}
 
-    # For MVP, we will try to fetch the pod status based on the raw_event
+    # Fetch pod status based on the raw_event
     raw_event = state.get("raw_event", {})
     involved_object = raw_event.get("involvedObject", {})
     pod_name = involved_object.get("name")
     namespace = involved_object.get("namespace", "default")
     
-    success = True
-    eval_details = {"reason": "Fallback to success for MVP if no pod name found"}
+    if not pod_name:
+        raise ValueError(f"Evaluate failed for {incident_id}: no pod name in raw_event")
     
-    if pod_name:
-        try:
-            status_json = await mcp.fetch_pod_status(namespace, pod_name)
-            status_data = json.loads(status_json)
-            
-            # Simple evaluation heuristics: Phase must be Running or Succeeded
-            phase = status_data.get("status", {}).get("phase", "")
-            
-            if phase in ["Running", "Succeeded"]:
-                success = True
-                eval_details = {"phase": phase, "status": "RESOLVED"}
-            else:
-                success = False
-                eval_details = {"phase": phase, "status": "INVESTIGATING (Retrying)"}
-                
-        except Exception as e:
-            logger.error(f"Failed to fetch pod status for evaluation: {e}")
-            success = False
-            eval_details = {"error": str(e), "status": "INVESTIGATING (Retrying)"}
-            
+    status_json = await mcp.fetch_pod_status(namespace, pod_name)
+    status_data = json.loads(status_json)
+    
+    # Simple evaluation heuristics: Phase must be Running or Succeeded
+    phase = status_data.get("status", {}).get("phase", "")
+    
+    if phase in ["Running", "Succeeded"]:
+        success = True
+        eval_details = {"phase": phase, "status": "RESOLVED"}
+    else:
+        success = False
+        eval_details = {"phase": phase, "status": "INVESTIGATING (Retrying)"}
+        
     final_status = "RESOLVED" if success else "INVESTIGATING"
 
     if incident_id:
