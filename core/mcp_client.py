@@ -178,6 +178,57 @@ class MCPClient:
             f"kubectl top pod {pod_name} -n {namespace}"
         )
 
+    async def quarantine_pod(self, namespace: str, pod_name: str, incident_id: str) -> str:
+        """Quarantine a pod by relabeling its app label to isolate it from services."""
+        # 1. Fetch current labels
+        status_json = await self.fetch_pod_status(namespace, pod_name)
+        import json
+        try:
+            pod_data = json.loads(status_json)
+            labels = pod_data.get("metadata", {}).get("labels", {})
+            app_label = labels.get("app")
+            
+            if not app_label:
+                return "Failed: Pod does not have an 'app' label to quarantine."
+                
+            # 2. Apply new labels (overwrite app, add quarantine flags)
+            new_app = f"{app_label}-quarantined"
+            logger.info(f"Quarantining pod {namespace}/{pod_name}: changing app={app_label} to app={new_app}")
+            
+            # Use kubectl label with --overwrite
+            cmd = (f"kubectl label pod {pod_name} -n {namespace} "
+                   f"app={new_app} "
+                   f"swarmsre.io/quarantined=true "
+                   f"swarmsre.io/incident-id={incident_id} "
+                   f"--overwrite")
+            
+            result = await self.call_kubectl(cmd)
+            
+            return json.dumps({
+                "success": True,
+                "original_app_label": app_label,
+                "new_app_label": new_app,
+                "pod_name": pod_name,
+                "namespace": namespace,
+                "kubectl_output": result
+            })
+        except Exception as e:
+            logger.error(f"Failed to quarantine pod {pod_name}: {e}")
+            return json.dumps({"success": False, "error": str(e)})
+
+    async def release_pod(self, namespace: str, pod_name: str, original_app_label: str) -> str:
+        """Release a quarantined pod by restoring its original app label."""
+        logger.info(f"Releasing pod {namespace}/{pod_name}: restoring app={original_app_label}")
+        
+        # Restore app label, remove quarantine flags
+        cmd = (f"kubectl label pod {pod_name} -n {namespace} "
+               f"app={original_app_label} "
+               f"swarmsre.io/quarantined- "
+               f"swarmsre.io/incident-id- "
+               f"--overwrite")
+               
+        return await self.call_kubectl(cmd)
+
     async def apply_patch(self, patch_yaml: str) -> str:
         """Apply a YAML patch via kubectl apply."""
         logger.info("Applying patch via MCP kubectl apply")

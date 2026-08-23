@@ -27,6 +27,7 @@
   
   /* Agent Colours (unique per sub-agent) */
   --agent-triage: #8B5CF6;
+  --agent-quarantine: #EAB308;
   --agent-investigator: #3B82F6;
   --agent-log-hunter: #F59E0B;
   --agent-telemetry: #10B981;

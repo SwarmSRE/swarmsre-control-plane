@@ -5,11 +5,12 @@ export interface Incident {
   id: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'INVESTIGATING' | 'PROPOSED' | 'RESOLVED' | 'REJECTED' | 'FAILED';
+  status: 'OPEN' | 'INVESTIGATING' | 'QUARANTINED' | 'PROPOSED' | 'RESOLVED' | 'REJECTED' | 'FAILED';
   source: string;
   created_at: string;
   updated_at: string;
   raw_event?: Record<string, unknown>;
+  quarantine_result?: Record<string, unknown>;
   rca_summary?: string;
   proposed_patch?: string;
   confidence_score?: number;

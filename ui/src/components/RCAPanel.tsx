@@ -90,6 +90,7 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
             {(() => {
               const getTrace = (agentName: string) => incident.agent_trace?.find(t => t.agent === agentName);
               const triageTrace = getTrace('Triage');
+              const quarantineTrace = getTrace('Quarantine');
               const investigatorTrace = getTrace('Investigator');
               const logHunterTrace = getTrace('Log Hunter');
               const telemetryTrace = getTrace('Telemetry Analyst');
@@ -112,6 +113,24 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
                       </div>
                     </AgentCard>
                   </div>
+
+                  {/* Quarantine Agent */}
+                  {quarantineTrace && (
+                    <div className="animate-fade-in delay-150 hover:-translate-y-0.5 transition-transform duration-300">
+                      <AgentCard 
+                        icon={<Shield />} 
+                        title="Pod Quarantine" 
+                        accentColor="agent-quarantine"
+                        summary={quarantineTrace.summary}
+                        timestamp={quarantineTrace.timestamp}
+                        rawData={incident.quarantine_result || quarantineTrace.details}
+                      >
+                        <div className="text-sm text-[#CBD5E1]">
+                          {quarantineTrace.details}
+                        </div>
+                      </AgentCard>
+                    </div>
+                  )}
 
                   {/* Investigator Agent */}
                   {incident.evidence_chain && incident.evidence_chain.length > 0 && (

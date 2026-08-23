@@ -13,7 +13,8 @@ Your output MUST contain:
 1. A cohesive, concise Root Cause Analysis (RCA) summary.
 2. A confidence score between 0.0 and 1.0 indicating how certain you are of the root cause based on the evidence.
 3. A Kubernetes YAML patch (in plain text, no markdown blocks) that resolves the root cause. If patching a deployment or pod, make sure the container name matches the affected service or container.
-"""
+
+Note: The failing pod may have been quarantined (isolated from production traffic) and preserved in its failure state for your analysis. The logs and metrics you see are from the original failing instance, not a restarted copy."""
 
 synthesize_prompt = ChatPromptTemplate.from_messages([
     ("system", SYNTHESIZE_SYSTEM_PROMPT),

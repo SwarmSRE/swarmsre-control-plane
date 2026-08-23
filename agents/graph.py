@@ -6,16 +6,17 @@ from agents.nodes.execute import execute_node
 from agents.nodes.investigate import investigate_node
 from agents.nodes.log_hunter import log_hunter_node
 from agents.nodes.propose import propose_node
+from agents.nodes.quarantine import quarantine_node
 from agents.nodes.synthesize import synthesize_node
 from agents.nodes.telemetry_analyst import telemetry_analyst_node
 from agents.nodes.triage import triage_node
 from agents.state import IncidentState
 
 
-def should_investigate(state: IncidentState) -> str:
+def should_quarantine(state: IncidentState) -> str:
     """Routing logic after triage."""
     if state.get("status") == "INVESTIGATING":
-        return "investigate"
+        return "quarantine"
     return END
 
 # Build the graph
@@ -23,6 +24,7 @@ graph = StateGraph(IncidentState)
 
 # Add nodes
 graph.add_node("triage", triage_node)
+graph.add_node("quarantine", quarantine_node)
 graph.add_node("investigate", investigate_node)
 graph.add_node("log_hunter", log_hunter_node)
 graph.add_node("telemetry_analyst", telemetry_analyst_node)
@@ -39,7 +41,8 @@ def evaluate_route(state: IncidentState) -> str:
 
 # Add edges
 graph.add_edge(START, "triage")
-graph.add_conditional_edges("triage", should_investigate)
+graph.add_conditional_edges("triage", should_quarantine)
+graph.add_edge("quarantine", "investigate")
 graph.add_edge("investigate", "log_hunter")
 graph.add_edge("investigate", "telemetry_analyst")
 graph.add_edge(["log_hunter", "telemetry_analyst"], "synthesize")

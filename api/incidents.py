@@ -54,6 +54,8 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
                 incident.confidence_score = float(values["confidence_score"])
             
             # 2. Update Structured Agent Outputs for UI Cards
+            if values.get("quarantine_result"):
+                incident.quarantine_result = values["quarantine_result"]
             if values.get("log_hunter_output"):
                 incident.log_hunter_output = values["log_hunter_output"]
             if values.get("telemetry_output"):

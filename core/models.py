@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class IncidentStatus(str, Enum):
     OPEN = "OPEN"
     INVESTIGATING = "INVESTIGATING"
+    QUARANTINED = "QUARANTINED"
     PROPOSED = "PROPOSED"
     RESOLVED = "RESOLVED"
     REJECTED = "REJECTED"
@@ -34,6 +35,7 @@ class IncidentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     raw_event: dict[str, Any] | None = None
+    quarantine_result: dict[str, Any] | None = None
     rca_summary: str | None = None
     proposed_patch: str | None = None
     confidence_score: float | None = None
@@ -51,6 +53,7 @@ class Incident(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     raw_event: dict[str, Any] | None = None
+    quarantine_result: dict[str, Any] | None = None
     rca_summary: str | None = None
     proposed_patch: str | None = None
     confidence_score: float | None = None
@@ -62,6 +65,8 @@ class Incident(BaseModel):
 class AuditAction(str, Enum):
     INCIDENT_CREATED = "INCIDENT_CREATED"
     TRIAGE_COMPLETED = "TRIAGE_COMPLETED"
+    POD_QUARANTINED = "POD_QUARANTINED"
+    POD_RELEASED = "POD_RELEASED"
     INVESTIGATION_COMPLETED = "INVESTIGATION_COMPLETED"
     PATCH_PROPOSED = "PATCH_PROPOSED"
     PATCH_APPROVED = "PATCH_APPROVED"
