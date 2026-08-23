@@ -37,10 +37,10 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
 
     try:
         # Run multi-agent graph (triage -> investigate -> log_hunter/telemetry -> synthesize -> propose)
-        await langgraph_app.ainvoke(initial_state, config)
+        await langgraph_app.ainvoke(initial_state, config)  # type: ignore[call-overload]
 
         # Retrieve checkpointed state
-        graph_state = await langgraph_app.aget_state(config)
+        graph_state = await langgraph_app.aget_state(config)  # type: ignore[arg-type]
         values = graph_state.values if graph_state else {}
 
         if incident_id in db:
@@ -118,7 +118,7 @@ async def create_incident(incident_in: IncidentCreate):
     # Trigger LangGraph state machine in the background
     initial_state: IncidentState = {
         "incident_id": incident.id,
-        "status": incident.status.value,
+        "status": incident.status.value,  # type: ignore[typeddict-item]
         "raw_event": incident.raw_event or {},
         "evidence": [],
         "messages": [f"Incident {incident.id} created"]
