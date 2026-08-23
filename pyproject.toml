@@ -15,6 +15,7 @@ dependencies = [
     "langchain-google-genai>=2.0.0",
     "langchain-groq>=0.2.0",
     "langgraph>=0.2.57",
+    "mcp[cli]>=1.0.0",
     "psycopg[binary]>=3.3.4",
     "pydantic>=2.9.0",
     "python-dotenv>=1.0.0",

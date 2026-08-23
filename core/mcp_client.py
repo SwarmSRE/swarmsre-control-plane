@@ -1,77 +1,201 @@
+"""
+Production-grade MCP Client for SwarmSRE.
+
+Connects to the Azure MCP Kubernetes server (ghcr.io/azure/mcp-kubernetes)
+via the official MCP Python SDK using SSE transport.
+
+Architecture:
+  - Lazy-initialized: connection is established on first use, not at import.
+  - Auto-reconnect: if the SSE session drops, the next call re-establishes it.
+  - Tool discovery: on connect, we enumerate available tools and cache them.
+  - Fail-fast: if MCP_SERVER_URL is unset, every call raises immediately.
+
+The Azure MCP server exposes a unified `call_kubectl` tool that accepts
+arbitrary kubectl commands. Our higher-level helpers (fetch_pod_logs, etc.)
+build on top of that.
+"""
+
+from __future__ import annotations
+
+import asyncio
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Any
 
-import httpx
+from mcp import ClientSession
+from mcp.client.sse import sse_client
 
 logger = logging.getLogger(__name__)
 
+
 class MCPClient:
-    def __init__(self):
-        self.base_url = os.environ.get("MCP_SERVER_URL")
-        if not self.base_url:
+    """Thread-safe, reconnecting MCP client over SSE transport."""
+
+    def __init__(self) -> None:
+        self._base_url: str | None = os.environ.get("MCP_SERVER_URL")
+        if not self._base_url:
             raise ValueError(
                 "MCP_SERVER_URL is required. Set it in your environment or .env file. "
                 "Example: MCP_SERVER_URL=http://localhost:3000"
             )
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
-        logger.info(f"Initialized MCPClient with base URL: {self.base_url}")
+        self._sse_url = f"{self._base_url.rstrip('/')}/sse"
+        self._lock = asyncio.Lock()
 
-    async def _call_tool(self, tool_name: str, arguments: dict) -> dict[str, Any]:
-        """Calls an MCP tool and raises exceptions on failure."""
-        logger.debug(f"Calling MCP tool {tool_name} with args: {arguments}")
-        response = await self.client.post(
-            f"/tools/{tool_name}/execute",
-            json={"arguments": arguments}
+        # Managed connection state
+        self._session: ClientSession | None = None
+        self._read_stream: Any = None
+        self._write_stream: Any = None
+        self._sse_cm: Any = None      # sse_client context manager
+        self._session_cm: Any = None  # ClientSession context manager
+        self._available_tools: list[str] = []
+        self._connected = False
+
+        logger.info(f"MCPClient configured for {self._base_url}")
+
+    # ── Connection lifecycle ──────────────────────────────────────────
+
+    async def _connect(self) -> None:
+        """Establish SSE connection, initialize MCP session, discover tools."""
+        if self._connected and self._session is not None:
+            return
+
+        # Tear down any stale state
+        await self._disconnect()
+
+        logger.info(f"Connecting to MCP server at {self._sse_url}")
+
+        # Open the SSE transport
+        self._sse_cm = sse_client(self._sse_url)
+        self._read_stream, self._write_stream = await self._sse_cm.__aenter__()
+
+        # Open the MCP session over the transport
+        self._session_cm = ClientSession(self._read_stream, self._write_stream)
+        self._session = await self._session_cm.__aenter__()
+
+        # Protocol handshake
+        await self._session.initialize()
+
+        # Discover available tools
+        tools_response = await self._session.list_tools()
+        self._available_tools = [t.name for t in tools_response.tools]
+        self._connected = True
+
+        logger.info(
+            f"MCP session established. Available tools: {self._available_tools}"
         )
-        response.raise_for_status()
-        return response.json()
+
+    async def _disconnect(self) -> None:
+        """Gracefully tear down session and transport."""
+        self._connected = False
+        self._session = None
+
+        if self._session_cm is not None:
+            try:
+                await self._session_cm.__aexit__(None, None, None)
+            except Exception:
+                pass
+            self._session_cm = None
+
+        if self._sse_cm is not None:
+            try:
+                await self._sse_cm.__aexit__(None, None, None)
+            except Exception:
+                pass
+            self._sse_cm = None
+
+    async def _ensure_connected(self) -> ClientSession:
+        """Return a live session, reconnecting if necessary."""
+        async with self._lock:
+            if not self._connected or self._session is None:
+                await self._connect()
+            assert self._session is not None
+            return self._session
+
+    # ── Low-level tool call ───────────────────────────────────────────
+
+    async def _call_tool(self, tool_name: str, arguments: dict[str, Any]) -> str:
+        """
+        Call an MCP tool by name.
+
+        Returns the text content of the first result, or the raw repr if
+        the result has an unexpected shape.
+        """
+        session = await self._ensure_connected()
+
+        logger.debug(f"Calling MCP tool '{tool_name}' with args: {arguments}")
+
+        try:
+            result = await session.call_tool(name=tool_name, arguments=arguments)
+        except Exception as exc:
+            # Connection died — mark as disconnected so next call reconnects
+            logger.warning(f"MCP call failed ({exc}), will reconnect on next call")
+            self._connected = False
+            self._session = None
+            raise
+
+        # Extract text from MCP result content blocks
+        if result.content:
+            texts = [
+                block.text
+                for block in result.content
+                if hasattr(block, "text")
+            ]
+            if texts:
+                return "\n".join(texts)
+
+        return str(result)
+
+    # ── High-level kubectl helpers ────────────────────────────────────
 
     async def call_kubectl(self, command: str) -> str:
-        logger.info(f"Calling MCP kubectl: {command}")
-        result = await self._call_tool("call_kubectl", {"command": command})
-        
-        if result.get("status") == "failed":
-            raise RuntimeError(f"MCP server failed to execute kubectl: {result.get('error')}")
-            
-        content = result.get("content", [])
-        if content and content[0].get("type") == "text":
-            return content[0].get("text", "")
-        return str(result)
-
+        """Execute an arbitrary kubectl command via the MCP server."""
+        logger.info(f"MCP kubectl: {command}")
+        return await self._call_tool("call_kubectl", {"command": command})
 
     async def fetch_pod_logs(self, namespace: str, pod_name: str) -> str:
-        command = f"kubectl logs {pod_name} -n {namespace} --tail=100"
-        return await self.call_kubectl(command)
+        """Retrieve the last 100 lines of logs for a pod."""
+        return await self.call_kubectl(
+            f"kubectl logs {pod_name} -n {namespace} --tail=100"
+        )
 
     async def fetch_pod_events(self, namespace: str, pod_name: str) -> str:
-        command = f"kubectl get events -n {namespace} --field-selector involvedObject.name={pod_name}"
-        return await self.call_kubectl(command)
+        """Retrieve Kubernetes events for a specific pod."""
+        return await self.call_kubectl(
+            f"kubectl get events -n {namespace} "
+            f"--field-selector involvedObject.name={pod_name}"
+        )
 
     async def fetch_pod_status(self, namespace: str, pod_name: str) -> str:
-        command = f"kubectl get pod {pod_name} -n {namespace} -o json"
-        return await self.call_kubectl(command)
+        """Retrieve full pod status as JSON."""
+        return await self.call_kubectl(
+            f"kubectl get pod {pod_name} -n {namespace} -o json"
+        )
 
     async def fetch_pod_top(self, namespace: str, pod_name: str) -> str:
-        command = f"kubectl top pod {pod_name} -n {namespace}"
-        return await self.call_kubectl(command)
+        """Retrieve resource usage metrics for a pod."""
+        return await self.call_kubectl(
+            f"kubectl top pod {pod_name} -n {namespace}"
+        )
 
     async def apply_patch(self, patch_yaml: str) -> str:
-        logger.info("Calling MCP kubectl apply")
-        result = await self._call_tool("apply_patch", {"yaml": patch_yaml})
-        
-        if result.get("status") == "failed":
-            raise RuntimeError(f"MCP server failed to apply patch: {result.get('error')}")
-            
-        content = result.get("content", [])
-        if content and content[0].get("type") == "text":
-            return content[0].get("text", "")
-        return str(result)
+        """Apply a YAML patch via kubectl apply."""
+        logger.info("Applying patch via MCP kubectl apply")
+        return await self._call_tool(
+            "call_kubectl",
+            {"command": f"kubectl apply -f - <<'EOF'\n{patch_yaml}\nEOF"},
+        )
 
-    async def close(self):
-        await self.client.aclose()
+    # ── Lifecycle ─────────────────────────────────────────────────────
+
+    async def close(self) -> None:
+        """Shut down the MCP session and transport cleanly."""
+        async with self._lock:
+            await self._disconnect()
+        logger.info("MCPClient closed")
 
 
-# Instantiate the singleton client
-# This will crash fast if MCP_SERVER_URL is missing, enforcing our architecture.
+# ── Singleton ─────────────────────────────────────────────────────────
+# Lazy-initialized: the SSE connection is NOT opened at import time.
+# The first call to any tool method triggers _ensure_connected().
 mcp = MCPClient()

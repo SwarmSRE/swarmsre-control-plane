@@ -38,6 +38,9 @@ class IncidentResponse(BaseModel):
     proposed_patch: str | None = None
     confidence_score: float | None = None
     evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
+    log_hunter_output: dict[str, Any] | None = None
+    telemetry_output: dict[str, Any] | None = None
+    agent_trace: list[dict[str, Any]] = Field(default_factory=list)
 
 class Incident(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -52,6 +55,9 @@ class Incident(BaseModel):
     proposed_patch: str | None = None
     confidence_score: float | None = None
     evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
+    log_hunter_output: dict[str, Any] | None = None
+    telemetry_output: dict[str, Any] | None = None
+    agent_trace: list[dict[str, Any]] = Field(default_factory=list)
 
 class AuditAction(str, Enum):
     INCIDENT_CREATED = "INCIDENT_CREATED"

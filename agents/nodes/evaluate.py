@@ -18,15 +18,27 @@ async def evaluate_node(state: IncidentState) -> dict:
 
     # Fetch pod status based on the raw_event
     raw_event = state.get("raw_event", {})
-    involved_object = raw_event.get("involvedObject", {})
-    pod_name = involved_object.get("name")
-    namespace = involved_object.get("namespace", "default")
+    # Support both snake_case (from watcher) and camelCase (from manual creation)
+    involved_object = raw_event.get("involved_object") or raw_event.get("involvedObject", {})
+    pod_name = involved_object.get("name", "")
+    namespace = involved_object.get("namespace") or raw_event.get("namespace", "default")
     
     if not pod_name:
-        raise ValueError(f"Evaluate failed for {incident_id}: no pod name in raw_event")
+        logger.warning(f"Evaluate for {incident_id}: no pod name in raw_event, skipping live check")
+        return {
+            "status": "PROPOSED",
+            "messages": [f"[Evaluator] Skipped live pod check — no pod name in event data. Deferring to human review."]
+        }
     
-    status_json = await mcp.fetch_pod_status(namespace, pod_name)
-    status_data = json.loads(status_json)
+    try:
+        status_json = await mcp.fetch_pod_status(namespace, pod_name)
+        status_data = json.loads(status_json)
+    except (json.JSONDecodeError, Exception) as e:
+        logger.warning(f"Evaluate for {incident_id}: could not fetch pod status: {e}")
+        return {
+            "status": "PROPOSED",
+            "messages": [f"[Evaluator] Could not fetch live pod status for {namespace}/{pod_name}: {e}. Deferring to human review."]
+        }
     
     # Simple evaluation heuristics: Phase must be Running or Succeeded
     phase = status_data.get("status", {}).get("phase", "")
@@ -50,5 +62,6 @@ async def evaluate_node(state: IncidentState) -> dict:
         
     return {
         "status": final_status, 
-        "messages": [f"Evaluation complete. Success: {success}"]
+        "messages": [f"[Evaluator] Evaluation complete. Pod phase: {phase}. Success: {success}"]
     }
+

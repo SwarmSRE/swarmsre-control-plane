@@ -21,7 +21,7 @@ async def propose_node(state: IncidentState) -> dict:
     confidence = state.get("confidence_score", 0.0)
     
     if not patch:
-        return {"status": "RESOLVED", "messages": ["No patch proposed. Resolving."]}
+        return {"status": "RESOLVED", "messages": ["[Proposer] No patch proposed. Resolving."]}
 
     # OPA Safety Gate — parse errors propagate loudly
     patch_dict = yaml.safe_load(patch)

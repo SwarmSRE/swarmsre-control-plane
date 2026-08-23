@@ -32,7 +32,7 @@ def triage_node(state: IncidentState) -> dict:
                 actor="ai-agent",
                 details={"triage_result": "passed", "reason": reason}
             ))
-        return {"status": "INVESTIGATING", "messages": [f"[Triage] Passed severity filter. Critical reason detected: '{reason}'."]}
+        return {"status": "INVESTIGATING", "messages": [f"[Triage] Passed severity filter. Proceeding to investigation."]}
 
     if incident_id:
         audit_logger.record_audit(AuditEntry(

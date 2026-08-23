@@ -1,9 +1,15 @@
 export interface GraphNode {
-  id: string;          // e.g., "deployment/payment-service"
-  group: string;       // e.g., "kubernetes", "database", "external"
-  status: string;      // e.g., "healthy", "degraded", "failed"
+  id: string;
+  label: string;
+  kind: 'Namespace' | 'Deployment' | 'ReplicaSet' | 'Pod' | 'Service' | 
+        'Ingress' | 'PersistentVolumeClaim' | 'ConfigMap' | 'Secret';
+  status: 'running' | 'failed' | 'warning' | 'pending' | 'unknown';
+  namespace?: string;
+  info?: string;
+  // d3 DAG properties
   x?: number;
   y?: number;
+  // Legacy d3 force properties (might still be used internally by some d3 logic depending on implementation)
   fx?: number | null;
   fy?: number | null;
 }
@@ -11,7 +17,7 @@ export interface GraphNode {
 export interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
-  value: number;       // Represents traffic volume or dependency strength
+  value?: number;
 }
 
 export interface TopologyData {

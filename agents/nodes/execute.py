@@ -13,11 +13,11 @@ async def execute_node(state: IncidentState) -> dict:
     logger.info(f"Running execute for incident {incident_id}")
     
     if state.get("status") == "REJECTED":
-        return {"messages": ["Execution skipped because patch was rejected."]}
+        return {"messages": ["[Executor] Execution skipped because patch was rejected."]}
 
     patch = state.get("proposed_patch")
     if not patch:
-        return {"messages": ["Execution skipped because no patch was proposed."]}
+        return {"messages": ["[Executor] Execution skipped because no patch was proposed."]}
 
     output = await mcp.apply_patch(patch)
     
@@ -29,4 +29,4 @@ async def execute_node(state: IncidentState) -> dict:
             details={"output": output}
         ))
         
-    return {"messages": [f"Execution complete: {output}"]}
+    return {"messages": [f"[Executor] Execution complete: {output}"]}

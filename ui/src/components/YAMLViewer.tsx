@@ -1,55 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Copy, Check } from './Icons';
 
 interface YAMLViewerProps {
   code: string;
 }
 
 export const YAMLViewer: React.FC<YAMLViewerProps> = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div style={{
-      borderRadius: 'var(--radius-md)',
-      overflow: 'hidden',
-      border: '1px solid var(--border-subtle)',
-      marginTop: 'var(--space-sm)'
-    }}>
-      <div style={{
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        padding: 'var(--space-sm) var(--space-md)',
-        fontSize: '0.75rem',
-        color: 'var(--text-muted)',
-        fontFamily: 'var(--font-mono)',
-        borderBottom: '1px solid var(--border-subtle)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span>proposed_patch.yaml</span>
+    <div className="rounded-lg overflow-hidden border border-[#1E293B] mt-2 shadow-lg">
+      <div className="bg-[#111827] px-4 py-2 flex justify-between items-center border-b border-[#1E293B]">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#EF4444]" />
+            <div className="w-3 h-3 rounded-full bg-[#F59E0B]" />
+            <div className="w-3 h-3 rounded-full bg-[#10B981]" />
+          </div>
+          <span className="text-xs text-[#94A3B8] font-mono ml-3">proposed_patch.yaml</span>
+        </div>
         <button 
-          onClick={() => navigator.clipboard.writeText(code)}
+          onClick={handleCopy}
           title="Copy to clipboard"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            padding: '2px',
-          }}
+          className="flex items-center gap-1.5 text-xs text-[#94A3B8] hover:text-[#F8FAFC] transition-colors"
         >
-          <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
+          {copied ? (
+            <>
+              <Check size={14} className="text-[#10B981]" />
+              <span className="text-[#10B981]">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy size={14} />
+              <span>Copy</span>
+            </>
+          )}
         </button>
       </div>
       <SyntaxHighlighter
         language="yaml"
         style={vscDarkPlus}
+        showLineNumbers={true}
         customStyle={{
           margin: 0,
-          padding: 'var(--space-md)',
-          background: 'rgba(0,0,0,0.2)',
-          fontSize: '0.875rem',
+          padding: '16px',
+          background: '#08060d', // Match the main darkest background
+          fontSize: '0.8125rem',
+          fontFamily: 'var(--font-mono)',
+        }}
+        lineNumberStyle={{
+          minWidth: '2.5em',
+          paddingRight: '1em',
+          color: '#475569',
+          textAlign: 'right',
         }}
       >
         {code}

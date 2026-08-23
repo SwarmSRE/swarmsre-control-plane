@@ -7,48 +7,43 @@ router = APIRouter(prefix="/api/topology", tags=["topology"])
 @router.get("")
 async def get_topology():
     """
-    Returns the current cluster topology (nodes and links) for the D3.js visualization.
-    For MVP, this returns a static/mock representation of a typical microservices architecture.
+    Returns mock topology data representing a hierarchical Kubernetes architecture
+    (Service -> Deployment -> ReplicaSet -> Pod -> PVC) for the dashboard visualization.
     """
-    # Mock microservices topology
     nodes = [
-        {"id": "ingress-gateway", "group": "gateway", "status": "healthy"},
-        {"id": "frontend-app", "group": "frontend", "status": "healthy"},
-        {"id": "auth-service", "group": "backend", "status": "healthy"},
-        {"id": "payment-service", "group": "backend", "status": "degraded"},
-        {"id": "inventory-service", "group": "backend", "status": "healthy"},
-        {"id": "shipping-service", "group": "backend", "status": "healthy"},
-        {"id": "user-db", "group": "database", "status": "healthy"},
-        {"id": "payment-db", "group": "database", "status": "failed"},
-        {"id": "inventory-db", "group": "database", "status": "healthy"},
-        {"id": "redis-cache", "group": "cache", "status": "healthy"},
-        {"id": "stripe-api", "group": "external", "status": "healthy"},
+        {"id": "svc/payment-service",     "label": "payment-service",     "kind": "Service",    "status": "running", "namespace": "payment"},
+        {"id": "deploy/payment-service",  "label": "payment-service",     "kind": "Deployment", "status": "warning", "namespace": "payment", "info": "2/3 available"},
+        {"id": "rs/payment-service-abc",  "label": "payment-service-abc", "kind": "ReplicaSet", "status": "warning", "namespace": "payment"},
+        {"id": "pod/payment-svc-abc-1",   "label": "payment-svc-abc-1",   "kind": "Pod",        "status": "running", "namespace": "payment"},
+        {"id": "pod/payment-svc-abc-2",   "label": "payment-svc-abc-2",   "kind": "Pod",        "status": "failed",  "namespace": "payment", "info": "CrashLoopBackOff"},
+        {"id": "pod/payment-svc-abc-3",   "label": "payment-svc-abc-3",   "kind": "Pod",        "status": "warning", "namespace": "payment", "info": "Restarts: 5"},
+        {"id": "pvc/payment-data",        "label": "payment-data",        "kind": "PersistentVolumeClaim", "status": "running", "namespace": "payment"},
+        
+        {"id": "svc/auth-service",        "label": "auth-service",        "kind": "Service",    "status": "running", "namespace": "auth"},
+        {"id": "deploy/auth-service",     "label": "auth-service",        "kind": "Deployment", "status": "running", "namespace": "auth"},
+        {"id": "rs/auth-service-xyz",     "label": "auth-service-xyz",    "kind": "ReplicaSet", "status": "running", "namespace": "auth"},
+        {"id": "pod/auth-svc-xyz-1",      "label": "auth-svc-xyz-1",      "kind": "Pod",        "status": "running", "namespace": "auth"},
+        {"id": "pod/auth-svc-xyz-2",      "label": "auth-svc-xyz-2",      "kind": "Pod",        "status": "running", "namespace": "auth"},
     ]
 
     links = [
-        {"source": "ingress-gateway", "target": "frontend-app", "value": 10},
-        {"source": "frontend-app", "target": "auth-service", "value": 5},
-        {"source": "frontend-app", "target": "payment-service", "value": 8},
-        {"source": "frontend-app", "target": "inventory-service", "value": 6},
-        {"source": "frontend-app", "target": "shipping-service", "value": 3},
+        {"source": "svc/payment-service",    "target": "deploy/payment-service"},
+        {"source": "deploy/payment-service", "target": "rs/payment-service-abc"},
+        {"source": "rs/payment-service-abc", "target": "pod/payment-svc-abc-1"},
+        {"source": "rs/payment-service-abc", "target": "pod/payment-svc-abc-2"},
+        {"source": "rs/payment-service-abc", "target": "pod/payment-svc-abc-3"},
+        {"source": "pod/payment-svc-abc-1",  "target": "pvc/payment-data"},
+        {"source": "pod/payment-svc-abc-2",  "target": "pvc/payment-data"},
+        {"source": "pod/payment-svc-abc-3",  "target": "pvc/payment-data"},
         
-        {"source": "auth-service", "target": "user-db", "value": 5},
-        {"source": "auth-service", "target": "redis-cache", "value": 8},
+        {"source": "svc/auth-service",       "target": "deploy/auth-service"},
+        {"source": "deploy/auth-service",    "target": "rs/auth-service-xyz"},
+        {"source": "rs/auth-service-xyz",    "target": "pod/auth-svc-xyz-1"},
+        {"source": "rs/auth-service-xyz",    "target": "pod/auth-svc-xyz-2"},
         
-        {"source": "payment-service", "target": "payment-db", "value": 8},
-        {"source": "payment-service", "target": "stripe-api", "value": 2},
-        {"source": "payment-service", "target": "auth-service", "value": 4},
-        
-        {"source": "inventory-service", "target": "inventory-db", "value": 6},
-        {"source": "inventory-service", "target": "redis-cache", "value": 4},
-        
-        {"source": "shipping-service", "target": "inventory-service", "value": 2},
+        # Inter-service dependency
+        {"source": "deploy/payment-service", "target": "svc/auth-service"},
     ]
-
-    # In a real system, the status would be dynamically computed based on active incidents
-    # For now, we inject some random jitter to simulate live traffic
-    for link in links:
-        link["value"] = max(1, link["value"] + random.randint(-1, 2))
 
     return {
         "nodes": nodes,

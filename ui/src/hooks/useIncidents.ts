@@ -14,6 +14,14 @@ export interface Incident {
   proposed_patch?: string;
   confidence_score?: number;
   evidence_chain?: Record<string, unknown>[];
+  log_hunter_output?: Record<string, unknown>;
+  telemetry_output?: Record<string, unknown>;
+  agent_trace?: Array<{
+    agent: string;
+    timestamp: string;
+    summary: string;
+    details: string;
+  }>;
 }
 
 export function useIncidents() {

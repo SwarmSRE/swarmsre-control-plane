@@ -52,5 +52,5 @@ async def synthesize_node(state: IncidentState) -> dict:
         "rca_summary": result.rca_summary,
         "confidence_score": result.confidence_score,
         "proposed_patch": result.proposed_patch,
-        "messages": [f"[Supervisor] Synthesized findings into root cause analysis with {result.confidence_score * 100:.0f}% confidence."]
+        "messages": [f"[Orchestrator] Synthesized findings into root cause analysis with {result.confidence_score * 100:.0f}% confidence."]
     }

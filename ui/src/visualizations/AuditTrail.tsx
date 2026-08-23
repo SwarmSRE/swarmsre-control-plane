@@ -1,109 +1,82 @@
 import React, { useEffect, useState } from 'react';
 
-interface AuditEntry {
+interface AuditLog {
   id: string;
   incident_id?: string;
-  timestamp: string;
   action: string;
   actor: string;
+  timestamp: string;
   details?: Record<string, any>;
 }
 
 export const AuditTrail: React.FC = () => {
-  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/audit/')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch audit logs');
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        // Sort descending by timestamp
-        const sorted = data.sort((a: AuditEntry, b: AuditEntry) => 
+        // Sort descending
+        const sorted = data.sort((a: AuditLog, b: AuditLog) => 
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
-        setEntries(sorted);
+        setLogs(sorted);
         setLoading(false);
       })
-      .catch(err => {
-        setError(err.message);
+      .catch(e => {
+        console.error(e);
         setLoading(false);
       });
   }, []);
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-2xl)', color: 'var(--text-muted)' }}>Loading audit trail...</div>;
-  }
-
-  if (error) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-2xl)', color: 'var(--status-red)' }}>Error: {error}</div>;
+    return <div className="text-[#94A3B8] p-8 text-center bg-[#111827]/50 rounded-xl border border-[#1E293B]">Loading audit logs...</div>;
   }
 
   return (
-    <div style={{ width: '100%', overflowX: 'auto', padding: 'var(--space-md)' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', textAlign: 'left' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
-            <th style={{ padding: 'var(--space-sm) var(--space-md)', fontWeight: 600 }}>Timestamp</th>
-            <th style={{ padding: 'var(--space-sm) var(--space-md)', fontWeight: 600 }}>Action</th>
-            <th style={{ padding: 'var(--space-sm) var(--space-md)', fontWeight: 600 }}>Actor</th>
-            <th style={{ padding: 'var(--space-sm) var(--space-md)', fontWeight: 600 }}>Incident ID</th>
-            <th style={{ padding: 'var(--space-sm) var(--space-md)', fontWeight: 600 }}>Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.length === 0 ? (
+    <div className="bg-[#111827]/50 backdrop-blur-md rounded-xl border border-[#1E293B] overflow-hidden">
+      <div className="p-6 pb-4 border-b border-[#1E293B] bg-[#111827]/80">
+        <h2 className="text-[#F8FAFC] font-semibold text-lg m-0">Audit Trail</h2>
+        <p className="text-xs text-[#94A3B8] m-0 mt-1">Immutable log of AI and human actions</p>
+      </div>
+      <div className="overflow-x-auto custom-scrollbar max-h-[600px]">
+        <table className="w-full text-left text-sm text-[#CBD5E1]">
+          <thead className="bg-[#0B1120]/50 text-xs uppercase font-semibold text-[#94A3B8] sticky top-0 z-10">
             <tr>
-              <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-xl)', color: 'var(--text-muted)' }}>
-                No audit logs found.
-              </td>
+              <th className="px-6 py-4 border-b border-[#1E293B]">Timestamp</th>
+              <th className="px-6 py-4 border-b border-[#1E293B]">Actor</th>
+              <th className="px-6 py-4 border-b border-[#1E293B]">Action</th>
+              <th className="px-6 py-4 border-b border-[#1E293B]">Incident ID</th>
             </tr>
-          ) : (
-            entries.map(entry => (
-              <tr key={entry.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)', transition: 'background-color 0.2s' }} className="hover:bg-gray-800/30">
-                <td style={{ padding: 'var(--space-sm) var(--space-md)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                  {new Date(entry.timestamp).toLocaleString()}
-                </td>
-                <td style={{ padding: 'var(--space-sm) var(--space-md)', color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {entry.action}
-                </td>
-                <td style={{ padding: 'var(--space-sm) var(--space-md)' }}>
-                  <span style={{ 
-                    backgroundColor: entry.actor === 'human-approver' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
-                    color: entry.actor === 'human-approver' ? 'var(--status-green)' : 'var(--status-blue)',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem'
-                  }}>
-                    {entry.actor}
+          </thead>
+          <tbody className="divide-y divide-[#1E293B]">
+            {logs.map((log) => (
+              <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-[#94A3B8]">{new Date(log.timestamp).toLocaleString()}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
+                    log.actor === 'HUMAN' 
+                      ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' 
+                      : 'bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30'
+                  }`}>
+                    {log.actor}
                   </span>
                 </td>
-                <td style={{ padding: 'var(--space-sm) var(--space-md)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {entry.incident_id || '-'}
-                </td>
-                <td style={{ padding: 'var(--space-sm) var(--space-md)' }}>
-                  {entry.details && Object.keys(entry.details).length > 0 ? (
-                    <pre style={{ 
-                      margin: 0, 
-                      padding: '4px 8px', 
-                      backgroundColor: 'rgba(0,0,0,0.2)', 
-                      borderRadius: 'var(--radius-sm)', 
-                      fontSize: '0.75rem',
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'pre-wrap'
-                    }}>
-                      {JSON.stringify(entry.details, null, 2)}
-                    </pre>
-                  ) : '-'}
+                <td className="px-6 py-4 font-medium text-[#E2E8F0]">{log.action}</td>
+                <td className="px-6 py-4 font-mono text-xs text-[#94A3B8]">{log.incident_id || '-'}</td>
+              </tr>
+            ))}
+            {logs.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center text-[#64748B]">
+                  No audit logs found.
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
