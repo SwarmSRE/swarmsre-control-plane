@@ -68,5 +68,5 @@ async def telemetry_analyst_node(state: IncidentState) -> dict:
     
     return {
         "telemetry_output": result.model_dump(),
-        "messages": [f"Telemetry Analyst identified resource status: {result.resource_status}"]
+        "messages": [f"[Telemetry Analyst] Resource status: '{result.resource_status}'. {len(result.anomalies)} anomalies detected."]
     }

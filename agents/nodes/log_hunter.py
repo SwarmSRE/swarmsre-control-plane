@@ -60,5 +60,5 @@ async def log_hunter_node(state: IncidentState) -> dict:
     
     return {
         "log_hunter_output": result.model_dump(),
-        "messages": [f"Log Hunter identified error class: {result.error_class}"]
+        "messages": [f"[Log Hunter] Identified error class: '{result.error_class}'. Frequency: {result.frequency}."]
     }

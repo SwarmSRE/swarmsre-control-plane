@@ -65,6 +65,25 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
            </div>
         )}
 
+        {/* Agent Trace */}
+        {incident.evidence_chain && incident.evidence_chain.some(e => e.message) && (
+          <div className="mb-8">
+            <h3 className="text-base font-semibold text-[#F8FAFC] mb-2 flex items-center gap-1">
+              <span className="text-[#F59E0B]">🤖</span> Agent Trace
+            </h3>
+            <div className="bg-black/20 p-4 rounded-lg border border-[#1E293B] flex flex-col gap-2">
+              {incident.evidence_chain
+                .filter(e => typeof e.message === 'string')
+                .map((e, idx) => (
+                  <div key={idx} className="text-sm flex items-start gap-2">
+                    <span className="text-[#94A3B8] shrink-0 mt-0.5">❯</span>
+                    <span className="text-[#E2E8F0] font-mono leading-relaxed break-words">{e.message as string}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Synthesis Details */}
         {incident.rca_summary && (
           <div className="mb-8">

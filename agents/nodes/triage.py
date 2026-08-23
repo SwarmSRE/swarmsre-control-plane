@@ -32,7 +32,7 @@ def triage_node(state: IncidentState) -> dict:
                 actor="ai-agent",
                 details={"triage_result": "passed", "reason": reason}
             ))
-        return {"status": "INVESTIGATING", "messages": [f"Triage passed: {reason}"]}
+        return {"status": "INVESTIGATING", "messages": [f"[Triage] Passed severity filter. Critical reason detected: '{reason}'."]}
 
     if incident_id:
         audit_logger.record_audit(AuditEntry(
@@ -41,4 +41,4 @@ def triage_node(state: IncidentState) -> dict:
             actor="ai-agent",
             details={"triage_result": "filtered", "reason": reason}
         ))
-    return {"status": "RESOLVED", "messages": [f"Triage filtered out: {reason}"]}
+    return {"status": "RESOLVED", "messages": [f"[Triage] Filtered out. Reason '{reason}' is not considered critical."]}

@@ -43,4 +43,4 @@ async def investigate_node(state: IncidentState) -> dict:
             ),
         )
     
-    return {"evidence": [evidence_item], "messages": ["Investigation complete"]}
+    return {"evidence": [evidence_item], "messages": [f"[Investigator] Extracted live logs and events for pod {namespace}/{pod_name}."]}
