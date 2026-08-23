@@ -22,7 +22,8 @@ def mock_get_worker_llm(monkeypatch):
 
     monkeypatch.setattr("agents.nodes.log_hunter.get_worker_llm", lambda: MockLLM())
 
-def test_log_hunter_node(mock_get_worker_llm):
+@pytest.mark.asyncio
+async def test_log_hunter_node(mock_get_worker_llm):
     state: IncidentState = {
         "incident_id": "test-inc-1",
         "status": "INVESTIGATING",
@@ -38,7 +39,7 @@ def test_log_hunter_node(mock_get_worker_llm):
         "confidence_score": 0.0
     }
     
-    result = log_hunter_node(state)
+    result = await log_hunter_node(state)
     
     assert "log_hunter_output" in result
     output = result["log_hunter_output"]
@@ -48,7 +49,8 @@ def test_log_hunter_node(mock_get_worker_llm):
     assert "messages" in result
     assert "Log Hunter identified error class: CrashLoopBackOff" in result["messages"][0]
 
-def test_log_hunter_no_evidence():
+@pytest.mark.asyncio
+async def test_log_hunter_no_evidence():
     state: IncidentState = {
         "incident_id": "test-inc-2",
         "status": "INVESTIGATING",
@@ -58,6 +60,6 @@ def test_log_hunter_no_evidence():
         "confidence_score": 0.0
     }
     
-    result = log_hunter_node(state)
+    result = await log_hunter_node(state)
     assert "log_hunter_output" not in result
     assert "Log Hunter skipped" in result["messages"][0]

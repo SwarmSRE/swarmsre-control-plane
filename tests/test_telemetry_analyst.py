@@ -11,7 +11,7 @@ def mock_get_worker_llm(monkeypatch):
         return TelemetryOutput(
             resource_status="memory_saturation",
             saturation_signals=["MEMORY: 1024Mi (near limit)"],
-            anomalies=None
+            anomalies=[]
         )
         
     class MockLLM:
@@ -75,6 +75,5 @@ async def test_telemetry_analyst_no_pod_name():
         "confidence_score": 0.0
     }
     
-    result = await telemetry_analyst_node(state)
-    assert "telemetry_output" not in result
-    assert "Telemetry Analyst skipped" in result["messages"][0]
+    with pytest.raises(ValueError, match="no pod name in event"):
+        await telemetry_analyst_node(state)

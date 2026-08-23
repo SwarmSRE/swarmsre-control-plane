@@ -21,7 +21,8 @@ def mock_get_orchestrator_llm(monkeypatch):
     monkeypatch.setattr("agents.nodes.synthesize.get_orchestrator_llm", lambda: MockLLM())
 
 
-def test_synthesize_node(mock_get_orchestrator_llm):
+@pytest.mark.asyncio
+async def test_synthesize_node(mock_get_orchestrator_llm):
     state: IncidentState = {
         "incident_id": "test-inc-1",
         "status": "INVESTIGATING",
@@ -33,7 +34,7 @@ def test_synthesize_node(mock_get_orchestrator_llm):
         "confidence_score": 0.0
     }
     
-    result = synthesize_node(state)
+    result = await synthesize_node(state)
     
     assert "rca_summary" in result
     assert result["rca_summary"] == "Memory saturation caused OOMKilled"
@@ -42,7 +43,8 @@ def test_synthesize_node(mock_get_orchestrator_llm):
     assert "Synthesis complete" in result["messages"][0]
 
 
-def test_synthesize_no_findings():
+@pytest.mark.asyncio
+async def test_synthesize_no_findings():
     state: IncidentState = {
         "incident_id": "test-inc-2",
         "status": "INVESTIGATING",
@@ -52,7 +54,7 @@ def test_synthesize_no_findings():
         "confidence_score": 0.0
     }
     
-    result = synthesize_node(state)
+    result = await synthesize_node(state)
     assert result["rca_summary"] == "No specific findings from specialized agents."
     assert result["confidence_score"] == 0.1
     assert "Synthesis completed with default fallback" in result["messages"][0]
