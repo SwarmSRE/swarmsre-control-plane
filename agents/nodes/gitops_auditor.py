@@ -68,7 +68,7 @@ async def gitops_auditor_node(state: IncidentState) -> dict:
         raise ValueError(f"GitOps Auditor failed to fetch Helm history for {release_name}: {e}")
 
     # 2. Fetch GitHub Commits
-    # CNCF-Grade: Read the repo URL from standard OCI annotations on the pod.
+    # Read the repo URL from standard OCI annotations on the pod.
     repo = None
     try:
         status_json = await mcp.fetch_pod_status(namespace, pod_name)

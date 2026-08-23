@@ -65,7 +65,7 @@ class _PostgreSQLIncidentBackend:
                 ON incidents(created_at DESC)
                 """
             )
-            # CNCF-Grade Migration: Ensure new columns exist for existing deployments
+            # Ensure new columns exist for existing deployments
             try:
                 conn.execute("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS gitops_output JSONB")
             except psycopg.errors.DuplicateColumn:
