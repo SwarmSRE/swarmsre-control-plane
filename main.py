@@ -37,7 +37,16 @@ app.include_router(topology.router)
 @app.get("/health", tags=["system"])
 async def health_check():
     """Health check endpoint for the control plane."""
-    return {"status": "ok", "component": "control-plane"}
+    return {
+        "status": "ok", 
+        "component": "control-plane",
+        "llm": {
+            "orchestrator_provider": os.getenv("ORCHESTRATOR_PROVIDER", "google"),
+            "orchestrator_model": os.getenv("ORCHESTRATOR_MODEL", "gemini-3.6-flash"),
+            "worker_provider": os.getenv("WORKER_PROVIDER", "groq"),
+            "worker_model": os.getenv("WORKER_MODEL", "openai/gpt-oss-120b"),
+        }
+    }
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def handle_api_404(request: Request, path: str):

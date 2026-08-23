@@ -21,6 +21,16 @@ dependencies = [
     "uvicorn>=0.30.0",
 ]
 
+[project.optional-dependencies]
+openai = ["langchain-openai>=0.3.0"]
+anthropic = ["langchain-anthropic>=0.3.0"]
+ollama = ["langchain-ollama>=0.3.0"]
+all-providers = [
+    "langchain-openai>=0.3.0",
+    "langchain-anthropic>=0.3.0",
+    "langchain-ollama>=0.3.0",
+]
+
 [project.scripts]
 swarmsre-control-plane = "swarmsre_control_plane:main"
 

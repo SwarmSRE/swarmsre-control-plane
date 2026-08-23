@@ -1,23 +1,43 @@
 import os
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
+import importlib
+import os
 
+from langchain_core.language_models.chat_models import BaseChatModel
 
-def get_orchestrator_llm(temperature: float = 0.0) -> ChatGoogleGenerativeAI:
-    """Returns the orchestrator LLM (Gemini) for complex reasoning and synthesis."""
+PROVIDER_REGISTRY = {
+    "google":    ("langchain_google_genai", "ChatGoogleGenerativeAI"),
+    "openai":    ("langchain_openai",      "ChatOpenAI"),
+    "anthropic": ("langchain_anthropic",   "ChatAnthropic"),
+    "groq":      ("langchain_groq",        "ChatGroq"),
+    "ollama":    ("langchain_ollama",       "ChatOllama"),
+}
+
+def _resolve_llm(provider: str, model: str, temperature: float = 0.0) -> BaseChatModel:
+    """Dynamically import and instantiate the correct LangChain chat model."""
+    provider = provider.lower()
+    if provider not in PROVIDER_REGISTRY:
+        raise ValueError(f"Unknown LLM provider '{provider}'. Supported: {list(PROVIDER_REGISTRY.keys())}")
+    
+    module_name, class_name = PROVIDER_REGISTRY[provider]
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        raise ImportError(f"Missing dependency for {provider}. Please run `uv pip install {module_name}`.")
+    
+    cls = getattr(module, class_name)
+    return cls(model=model, temperature=temperature)
+
+def get_orchestrator_llm(temperature: float = 0.0) -> BaseChatModel:
+    """Returns the orchestrator LLM for complex reasoning and synthesis."""
+    provider = os.getenv("ORCHESTRATOR_PROVIDER", "google")
     model = os.getenv("ORCHESTRATOR_MODEL", "gemini-3.6-flash")
-    return ChatGoogleGenerativeAI(
-        model=model,
-        temperature=temperature,
-    )
+    return _resolve_llm(provider, model, temperature)
 
-def get_worker_llm(temperature: float = 0.0) -> ChatGroq:
-    """Returns a fast worker LLM (Groq) for log/telemetry extraction."""
+def get_worker_llm(temperature: float = 0.0) -> BaseChatModel:
+    """Returns a fast worker LLM for log/telemetry extraction."""
+    provider = os.getenv("WORKER_PROVIDER", "groq")
     model = os.getenv("WORKER_MODEL", "openai/gpt-oss-120b")
-    return ChatGroq(
-        model=model,
-        temperature=temperature,
-    )
+    return _resolve_llm(provider, model, temperature)
 
 
