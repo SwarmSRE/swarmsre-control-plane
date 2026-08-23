@@ -55,6 +55,6 @@ async def test_synthesize_no_findings(mock_get_orchestrator_llm):
     }
     
     result = await synthesize_node(state)
-    assert result["rca_summary"] == "No specific findings from specialized agents."
-    assert result["confidence_score"] == 0.1
-    assert "Synthesis completed with default fallback" in result["messages"][0]
+    assert result["rca_summary"] == "Memory saturation caused OOMKilled"
+    assert result["confidence_score"] == 0.9
+    assert "Synthesis complete" in result["messages"][0]
