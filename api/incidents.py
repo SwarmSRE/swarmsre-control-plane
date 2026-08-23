@@ -174,7 +174,7 @@ async def approve_incident(incident_id: str):
     
     # Resume LangGraph execution from the HITL pause node to apply patch
     config = {"configurable": {"thread_id": incident_id}}
-    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config))
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": True}), config))  # type: ignore[call-overload]
     
     return incident
 
@@ -214,7 +214,7 @@ async def reject_incident(incident_id: str):
     
     # Resume LangGraph execution with a rejection
     config = {"configurable": {"thread_id": incident_id}}
-    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config))
+    asyncio.create_task(langgraph_app.ainvoke(Command(resume={"approved": False}), config))  # type: ignore[call-overload]
     
     return incident
 
