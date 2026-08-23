@@ -6,7 +6,7 @@ import { ApprovalControls } from './ApprovalControls';
 
 interface RCAPanelProps {
   incident: Incident | null;
-  onRefreshNeeded: () => void;
+  onRefreshNeeded: (newStatus?: 'RESOLVED' | 'REJECTED') => void;
 }
 
 export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded }) => {

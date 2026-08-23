@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { TopologyData, GraphNode, GraphLink } from './topology-data';
+import type { TopologyData, GraphNode } from './topology-data';
 
 interface TopologyGraphProps {
   data: TopologyData;
@@ -71,13 +71,13 @@ export const TopologyGraph: React.FC<TopologyGraphProps> = ({ data }) => {
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke-width", d => Math.sqrt(d.value as number));
+      .attr("stroke-width", (d: any) => Math.sqrt(d.value as number));
 
     // Nodes container
-    const node = svg.append("g")
+    const node = (svg.append("g")
       .selectAll("g")
       .data(nodes)
-      .join("g")
+      .join("g") as any)
       .call(d3.drag<SVGGElement, any>()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -107,11 +107,11 @@ export const TopologyGraph: React.FC<TopologyGraphProps> = ({ data }) => {
     // Draw hexagons
     node.append("path")
       .attr("d", getHexagonPath(22))
-      .attr("fill", d => `${getStatusColor(d.status)}33`) // 20% opacity background
-      .attr("stroke", d => getStatusColor(d.status))
+      .attr("fill", (d: any) => `${getStatusColor(d.status)}33`) // 20% opacity background
+      .attr("stroke", (d: any) => getStatusColor(d.status))
       .attr("stroke-width", 2)
-      .attr("filter", d => d.status === 'failed' ? "url(#glow)" : null)
-      .classed("pulse-failed", d => d.status === 'failed'); // We'll add this class in global CSS or handle it in inline style if possible. Wait, tailwind animate-pulse might not work perfectly on SVG paths without setting it in class. We'll add a class.
+      .attr("filter", (d: any) => d.status === 'failed' ? "url(#glow)" : null)
+      .classed("pulse-failed", (d: any) => d.status === 'failed'); // We'll add this class in global CSS or handle it in inline style if possible. Wait, tailwind animate-pulse might not work perfectly on SVG paths without setting it in class. We'll add a class.
       
     // Applying Tailwind's animate-pulse to failed nodes
     node.selectAll("path.pulse-failed")
@@ -124,14 +124,14 @@ export const TopologyGraph: React.FC<TopologyGraphProps> = ({ data }) => {
       .attr("fill", "#F8FAFC")
       .attr("font-size", "12px")
       .attr("font-weight", "600")
-      .text(d => d.id);
+      .text((d: any) => d.id);
 
     node.append("text")
       .attr("dy", 52)
       .attr("text-anchor", "middle")
       .attr("fill", "#94A3B8")
       .attr("font-size", "10px")
-      .text(d => d.group);
+      .text((d: any) => d.group);
 
     simulation.on("tick", () => {
       link

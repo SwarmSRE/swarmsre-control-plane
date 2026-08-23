@@ -26,6 +26,16 @@ function App() {
       .catch(console.error);
   }, []);
 
+  // Sync selectedIncident when incidents array updates from websocket
+  useEffect(() => {
+    if (selectedIncident) {
+      const updated = incidents.find(i => i.id === selectedIncident.id);
+      if (updated && updated.status !== selectedIncident.status) {
+        setSelectedIncident(updated);
+      }
+    }
+  }, [incidents]);
+
   return (
     <div className="flex w-full min-h-screen bg-[#0B1120] text-[#F8FAFC]">
       {/* Sidebar */}
@@ -86,7 +96,11 @@ function App() {
             />
             <RCAPanel 
               incident={selectedIncident} 
-              onRefreshNeeded={() => {}} 
+              onRefreshNeeded={(newStatus) => {
+                if (selectedIncident && newStatus) {
+                  setSelectedIncident({ ...selectedIncident, status: newStatus });
+                }
+              }} 
             />
           </div>
         )}

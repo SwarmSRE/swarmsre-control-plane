@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface ApprovalControlsProps {
   incidentId: string;
-  onActionComplete: () => void;
+  onActionComplete: (newStatus: 'RESOLVED' | 'REJECTED') => void;
 }
 
 export const ApprovalControls: React.FC<ApprovalControlsProps> = ({ incidentId, onActionComplete }) => {
@@ -15,7 +15,7 @@ export const ApprovalControls: React.FC<ApprovalControlsProps> = ({ incidentId, 
         method: 'POST',
       });
       if (res.ok) {
-        onActionComplete();
+        onActionComplete(action === 'approve' ? 'RESOLVED' : 'REJECTED');
       } else {
         console.error(`Failed to ${action} patch:`, await res.text());
       }
