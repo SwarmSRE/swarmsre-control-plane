@@ -17,6 +17,7 @@ export interface Incident {
   evidence_chain?: Record<string, unknown>[];
   log_hunter_output?: Record<string, unknown>;
   telemetry_output?: Record<string, unknown>;
+  gitops_output?: Record<string, unknown>;
   agent_trace?: Array<{
     agent: string;
     timestamp: string;

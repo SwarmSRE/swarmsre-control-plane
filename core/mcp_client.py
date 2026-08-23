@@ -229,6 +229,57 @@ class MCPClient:
                
         return await self.call_kubectl(cmd)
 
+    async def fetch_helm_history(self, namespace: str, release_name: str) -> str:
+        """Fetch the history of a Helm release to detect recent deployments."""
+        return await self.call_kubectl(
+            f"helm history {release_name} -n {namespace} -o json"
+        )
+
+    async def fetch_helm_values(self, namespace: str, release_name: str, revision: int) -> str:
+        """Fetch the exact values used for a specific Helm revision."""
+        return await self.call_kubectl(
+            f"helm get values {release_name} -n {namespace} --revision {revision}"
+        )
+
+    async def fetch_github_commits(self, repo: str, since_timestamp: str) -> str:
+        """Fetch recent commits from a GitHub repository using the GitHub REST API."""
+        import httpx
+        import os
+        import json
+        
+        token = os.environ.get("GITHUB_TOKEN")
+        if not token:
+            return json.dumps({"error": "GITHUB_TOKEN not set, cannot fetch commits."})
+            
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+        
+        url = f"https://api.github.com/repos/{repo}/commits"
+        params = {"since": since_timestamp}
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, headers=headers, params=params, timeout=10.0)
+                resp.raise_for_status()
+                commits = resp.json()
+                
+                # Format to a smaller structure to fit in LLM context
+                formatted = []
+                for c in commits[:5]:  # Limit to 5 most recent
+                    formatted.append({
+                        "sha": c["sha"][:7],
+                        "author": c["commit"]["author"]["name"],
+                        "message": c["commit"]["message"],
+                        "date": c["commit"]["author"]["date"]
+                    })
+                return json.dumps(formatted)
+        except Exception as e:
+            logger.error(f"Failed to fetch GitHub commits for {repo}: {e}")
+            return json.dumps({"error": str(e)})
+
     async def apply_patch(self, patch_yaml: str) -> str:
         """Apply a YAML patch via kubectl apply."""
         logger.info("Applying patch via MCP kubectl apply")

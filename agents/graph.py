@@ -3,6 +3,7 @@ from langgraph.graph import END, START, StateGraph
 
 from agents.nodes.evaluate import evaluate_node
 from agents.nodes.execute import execute_node
+from agents.nodes.gitops_auditor import gitops_auditor_node
 from agents.nodes.investigate import investigate_node
 from agents.nodes.log_hunter import log_hunter_node
 from agents.nodes.propose import propose_node
@@ -28,6 +29,7 @@ graph.add_node("quarantine", quarantine_node)
 graph.add_node("investigate", investigate_node)
 graph.add_node("log_hunter", log_hunter_node)
 graph.add_node("telemetry_analyst", telemetry_analyst_node)
+graph.add_node("gitops_auditor", gitops_auditor_node)
 graph.add_node("synthesize", synthesize_node)
 graph.add_node("propose", propose_node)
 graph.add_node("execute", execute_node)
@@ -45,7 +47,8 @@ graph.add_conditional_edges("triage", should_quarantine)
 graph.add_edge("quarantine", "investigate")
 graph.add_edge("investigate", "log_hunter")
 graph.add_edge("investigate", "telemetry_analyst")
-graph.add_edge(["log_hunter", "telemetry_analyst"], "synthesize")
+graph.add_edge("investigate", "gitops_auditor")
+graph.add_edge(["log_hunter", "telemetry_analyst", "gitops_auditor"], "synthesize")
 graph.add_edge("synthesize", "propose")
 # HITL pause happens inside propose_node via interrupt()
 graph.add_edge("propose", "execute")

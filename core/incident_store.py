@@ -48,6 +48,7 @@ class _PostgreSQLIncidentBackend:
                     evidence_chain JSONB,
                     log_hunter_output JSONB,
                     telemetry_output JSONB,
+                    gitops_output JSONB,
                     agent_trace JSONB
                 )
                 """
@@ -64,6 +65,11 @@ class _PostgreSQLIncidentBackend:
                 ON incidents(created_at DESC)
                 """
             )
+            # CNCF-Grade Migration: Ensure new columns exist for existing deployments
+            try:
+                conn.execute("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS gitops_output JSONB")
+            except psycopg.errors.DuplicateColumn:
+                pass
             conn.commit()
         logger.info("PostgreSQL incidents table initialized.")
 
@@ -74,9 +80,9 @@ class _PostgreSQLIncidentBackend:
                 INSERT INTO incidents (
                     id, title, description, status, source, created_at, updated_at,
                     raw_event, rca_summary, proposed_patch, confidence_score,
-                    evidence_chain, log_hunter_output, telemetry_output, agent_trace
+                    evidence_chain, log_hunter_output, telemetry_output, gitops_output, agent_trace
                 ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     title = EXCLUDED.title,
@@ -92,6 +98,7 @@ class _PostgreSQLIncidentBackend:
                     evidence_chain = EXCLUDED.evidence_chain,
                     log_hunter_output = EXCLUDED.log_hunter_output,
                     telemetry_output = EXCLUDED.telemetry_output,
+                    gitops_output = EXCLUDED.gitops_output,
                     agent_trace = EXCLUDED.agent_trace
                 """,
                 (
@@ -109,6 +116,7 @@ class _PostgreSQLIncidentBackend:
                     _serialize_json(incident.evidence_chain),
                     _serialize_json(incident.log_hunter_output),
                     _serialize_json(incident.telemetry_output),
+                    _serialize_json(incident.gitops_output),
                     _serialize_json(incident.agent_trace),
                 ),
             )
@@ -130,7 +138,8 @@ class _PostgreSQLIncidentBackend:
             evidence_chain=_deserialize_json(row[11]) or [],
             log_hunter_output=_deserialize_json(row[12]),
             telemetry_output=_deserialize_json(row[13]),
-            agent_trace=_deserialize_json(row[14]) or [],
+            gitops_output=_deserialize_json(row[14]),
+            agent_trace=_deserialize_json(row[15]) or [],
         )
 
     def get(self, incident_id: str) -> Incident | None:
@@ -139,7 +148,7 @@ class _PostgreSQLIncidentBackend:
                 """
                 SELECT id, title, description, status, source, created_at, updated_at,
                        raw_event, rca_summary, proposed_patch, confidence_score,
-                       evidence_chain, log_hunter_output, telemetry_output, agent_trace
+                       evidence_chain, log_hunter_output, telemetry_output, gitops_output, agent_trace
                 FROM incidents WHERE id = %s
                 """,
                 (incident_id,),
@@ -155,7 +164,7 @@ class _PostgreSQLIncidentBackend:
                 """
                 SELECT id, title, description, status, source, created_at, updated_at,
                        raw_event, rca_summary, proposed_patch, confidence_score,
-                       evidence_chain, log_hunter_output, telemetry_output, agent_trace
+                       evidence_chain, log_hunter_output, telemetry_output, gitops_output, agent_trace
                 FROM incidents ORDER BY created_at DESC
                 """
             )

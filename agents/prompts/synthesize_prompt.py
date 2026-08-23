@@ -18,5 +18,5 @@ Note: The failing pod may have been quarantined (isolated from production traffi
 
 synthesize_prompt = ChatPromptTemplate.from_messages([
     ("system", SYNTHESIZE_SYSTEM_PROMPT),
-    ("human", "Target Resource: {target_resource}\nIncident Reason: {reason}\nLog Hunter Findings: {log_hunter_output}\nTelemetry Analyst Findings: {telemetry_output}")
+    ("human", "Target Resource: {target_resource}\nIncident Reason: {reason}\nLog Hunter Findings: {log_hunter_output}\nTelemetry Analyst Findings: {telemetry_output}\nGitOps Findings: {gitops_output}")
 ])

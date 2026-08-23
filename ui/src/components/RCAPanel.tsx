@@ -29,9 +29,11 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
   // Extract structured findings if available (from JSON strings in state)
   let logHunterData = null;
   let telemetryData = null;
+  let gitopsData = null;
   try {
     if (incident.log_hunter_output) logHunterData = JSON.parse(incident.log_hunter_output as string);
     if (incident.telemetry_output) telemetryData = JSON.parse(incident.telemetry_output as string);
+    if (incident.gitops_output) gitopsData = JSON.parse(incident.gitops_output as string);
   } catch (e) {
     console.error("Failed to parse structured agent outputs", e);
   }
@@ -94,6 +96,7 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
               const investigatorTrace = getTrace('Investigator');
               const logHunterTrace = getTrace('Log Hunter');
               const telemetryTrace = getTrace('Telemetry Analyst');
+              const gitopsTrace = getTrace('GitOps Auditor');
               const orchestratorTrace = getTrace('Orchestrator');
               
               return (
@@ -209,6 +212,47 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
                               <ul className="list-disc list-inside text-sm text-[#CBD5E1] m-0 space-y-1">
                                 {telemetryData.anomalies.map((a: string, i: number) => (
                                   <li key={i}>{a}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </AgentCard>
+                    </div>
+                  )}
+
+                  {/* GitOps Auditor */}
+                  {gitopsData && (
+                    <div className="animate-fade-in delay-450 hover:-translate-y-0.5 transition-transform duration-300">
+                      <AgentCard 
+                        icon={<FileSearch />} 
+                        title="GitOps Auditor" 
+                        accentColor="agent-gitops"
+                        summary={gitopsTrace?.summary || `Configuration drift: ${gitopsData.drift_detected}`}
+                        timestamp={gitopsTrace?.timestamp}
+                        rawData={gitopsData}
+                      >
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <div className="text-xs text-[#94A3B8] uppercase tracking-wider mb-1">Configuration Drift</div>
+                            <div className="text-sm font-semibold text-[#F8FAFC] capitalize">
+                              {gitopsData.drift_detected}
+                            </div>
+                          </div>
+                          {gitopsData.drift_details && (
+                            <div>
+                              <div className="text-xs text-[#94A3B8] uppercase tracking-wider mb-1">Details</div>
+                              <div className="text-sm text-[#CBD5E1] whitespace-pre-wrap bg-black/40 p-3 rounded border border-[#1E293B]">
+                                {gitopsData.drift_details}
+                              </div>
+                            </div>
+                          )}
+                          {gitopsData.suspect_commits && gitopsData.suspect_commits.length > 0 && (
+                            <div>
+                              <div className="text-xs text-[#94A3B8] uppercase tracking-wider mb-1">Suspect Commits</div>
+                              <ul className="list-disc list-inside text-sm text-[#CBD5E1] m-0 space-y-1">
+                                {gitopsData.suspect_commits.map((c: string, i: number) => (
+                                  <li key={i}>{c}</li>
                                 ))}
                               </ul>
                             </div>

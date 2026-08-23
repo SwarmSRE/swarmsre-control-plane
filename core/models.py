@@ -42,6 +42,7 @@ class IncidentResponse(BaseModel):
     evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
     log_hunter_output: dict[str, Any] | None = None
     telemetry_output: dict[str, Any] | None = None
+    gitops_output: dict[str, Any] | None = None
     agent_trace: list[dict[str, Any]] = Field(default_factory=list)
 
 class Incident(BaseModel):
@@ -60,6 +61,7 @@ class Incident(BaseModel):
     evidence_chain: list[dict[str, Any]] = Field(default_factory=list)
     log_hunter_output: dict[str, Any] | None = None
     telemetry_output: dict[str, Any] | None = None
+    gitops_output: dict[str, Any] | None = None
     agent_trace: list[dict[str, Any]] = Field(default_factory=list)
 
 class AuditAction(str, Enum):

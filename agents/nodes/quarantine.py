@@ -50,10 +50,7 @@ async def quarantine_node(state: IncidentState) -> dict:
             "messages": [msg]
         }
     else:
-        # If quarantine fails, we just log it and proceed to investigation anyway
-        msg = f"[Quarantine] Failed to quarantine pod {namespace}/{pod_name}: {result.get('error')}"
-        logger.warning(msg)
-        return {
-            "status": "INVESTIGATING",
-            "messages": [msg]
-        }
+        # CNCF-Grade: Fail loudly if we cannot quarantine a pod that we intended to quarantine
+        msg = f"Failed to quarantine pod {namespace}/{pod_name}: {result.get('error')}"
+        logger.error(msg)
+        raise ValueError(msg)

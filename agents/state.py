@@ -9,6 +9,7 @@ class IncidentState(TypedDict, total=False):
     evidence: Annotated[list[dict], operator.add]
     log_hunter_output: dict | None
     telemetry_output: dict | None
+    gitops_output: dict | None
     quarantine_result: dict | None
     rca_summary: str | None
     proposed_patch: str | None

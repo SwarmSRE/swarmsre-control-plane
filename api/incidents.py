@@ -60,6 +60,8 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
                 incident.log_hunter_output = values["log_hunter_output"]
             if values.get("telemetry_output"):
                 incident.telemetry_output = values["telemetry_output"]
+            if values.get("gitops_output"):
+                incident.gitops_output = values["gitops_output"]
             if values.get("evidence"):
                 incident.evidence_chain = [e if isinstance(e, dict) else {"details": str(e)} for e in values["evidence"]]
                 

@@ -34,6 +34,7 @@ async def synthesize_node(state: IncidentState) -> dict:
     
     log_hunter_output = state.get("log_hunter_output", {})
     telemetry_output = state.get("telemetry_output", {})
+    gitops_output = state.get("gitops_output", {})
 
     llm = get_orchestrator_llm()
     structured_llm = llm.with_structured_output(RCASummary)
@@ -43,7 +44,8 @@ async def synthesize_node(state: IncidentState) -> dict:
         "target_resource": target_resource,
         "reason": reason,
         "log_hunter_output": json.dumps(log_hunter_output),
-        "telemetry_output": json.dumps(telemetry_output)
+        "telemetry_output": json.dumps(telemetry_output),
+        "gitops_output": json.dumps(gitops_output)
     }))
     
     logger.info(f"Synthesis complete. Confidence: {result.confidence_score}")
