@@ -75,7 +75,7 @@ async def _run_incident_workflow(incident_id: str, initial_state: IncidentState,
 
     except Exception as e:
         # Fail loudly — mark FAILED and broadcast the error to the UI
-        logger.error(f"Incident workflow FAILED for {incident_id}: {e}", exc_info=True)
+        logger.exception(f"Incident workflow FAILED for {incident_id}: {e}")
         if incident_id in db:
             db[incident_id].status = IncidentStatus.FAILED
             db[incident_id].updated_at = datetime.now(UTC)
