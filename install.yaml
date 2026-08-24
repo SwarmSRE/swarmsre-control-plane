@@ -1,0 +1,242 @@
+---
+# Source: swarmsre-server/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: 
+
+---
+# Source: swarmsre-server/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+stringData:
+  databaseUrl: "postgresql://swarmsre:swarmsre@swarmsre-swarmsre-server-postgres:5432/swarmsre"
+  openaiApiKey: "REPLACE_ME"
+  slackWebhookUrl: ""
+
+---
+# Source: swarmsre-server/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "services", "endpoints", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  # Needed for quarantine labels
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["patch", "update"]
+
+---
+# Source: swarmsre-server/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: swarmsre-swarmsre-server
+subjects:
+  - kind: ServiceAccount
+    name: swarmsre-swarmsre-server
+    namespace: swarmsre-system
+
+---
+# Source: swarmsre-server/templates/postgres-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: swarmsre-swarmsre-server-postgres
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: swarmsre-swarmsre-server-postgres
+
+---
+# Source: swarmsre-server/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+
+---
+# Source: swarmsre-server/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swarmsre-swarmsre-server
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: swarmsre-server
+      app.kubernetes.io/instance: swarmsre
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: swarmsre-server-0.1.0
+        app.kubernetes.io/name: swarmsre-server
+        app.kubernetes.io/instance: swarmsre
+        app.kubernetes.io/version: "0.1.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: swarmsre-swarmsre-server
+      securityContext:
+        {}
+      containers:
+        - name: swarmsre-server
+          securityContext:
+            {}
+          image: "ghcr.io/swarmsre/swarmsre-control-plane:0.1.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: swarmsre-swarmsre-server
+                  key: databaseUrl
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: swarmsre-swarmsre-server
+                  key: openaiApiKey
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: swarmsre-swarmsre-server
+                  key: slackWebhookUrl
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {}
+
+---
+# Source: swarmsre-server/templates/postgres-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: swarmsre-swarmsre-server-postgres
+  labels:
+    helm.sh/chart: swarmsre-server-0.1.0
+    app.kubernetes.io/name: swarmsre-server
+    app.kubernetes.io/instance: swarmsre
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: swarmsre-swarmsre-server-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swarmsre-swarmsre-server-postgres
+  template:
+    metadata:
+      labels:
+        app: swarmsre-swarmsre-server-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: "swarmsre"
+            - name: POSTGRES_PASSWORD
+              value: "swarmsre"
+            - name: POSTGRES_DB
+              value: "swarmsre"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
