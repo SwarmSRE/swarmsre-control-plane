@@ -85,18 +85,17 @@ jobs:
       - name: Publish to GitHub Pages
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Clone gh-pages branch to temp dir
-          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" /tmp/gh-pages || git init /tmp/gh-pages
-          cd /tmp/gh-pages
-          
-          # Setup gh-pages tracking if it was just initialized
-          if [ ! -d ".git/refs/heads/gh-pages" ]; then
+          # Clone gh-pages branch to temp dir, or init fresh if it doesn't exist yet
+          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" /tmp/gh-pages 2>/dev/null || {
+            git init /tmp/gh-pages
+            cd /tmp/gh-pages
             git checkout -b gh-pages
             git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          fi
+          }
+          cd /tmp/gh-pages
           
           # Copy files
           cp $GITHUB_WORKSPACE/install.yaml .
