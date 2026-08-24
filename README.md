@@ -13,28 +13,45 @@ SwarmSRE follows a **unified ArgoCD-style architecture**:
 - **MCP Server (Agent)**: An optional Model Context Protocol server deployed in target clusters to execute actions.
 - **PostgreSQL**: Stores the immutable audit trail for all AI actions.
 
-## 🚀 Quickstart
+## 🚀 Quick Install (Kubernetes)
+
+SwarmSRE is designed to be installed on any Kubernetes cluster in seconds.
+
+### Option 1: Static Manifest (Easiest)
+```bash
+kubectl create namespace swarmsre-system
+kubectl apply -n swarmsre-system -f https://get.swarmsre.app/install.yaml
+```
+
+### Option 2: The Installer Script
+```bash
+curl -sfL https://get.swarmsre.app | sh -
+```
+
+### Option 3: Helm OCI (Recommended for Production)
+```bash
+helm install swarmsre oci://ghcr.io/swarmsre/charts/swarmsre-server \
+  --version 0.1.0 \
+  --namespace swarmsre-system --create-namespace \
+  --set config.databaseUrl="postgresql://user:pass@host:5432/db" \
+  --set config.openaiApiKey="sk-..."
+```
+
+*(Note: The default `install.yaml` and script will provision a bundled PostgreSQL StatefulSet. For production, disable it and pass a `databaseUrl` via Helm).*
+
+## 🛠️ Local Development
 
 ### 1. Prerequisites
 - `uv` for Python package management
 - Node.js 20+ for UI development
-- PostgreSQL (or rely on SQLite fallback... *wait, SQLite was removed! You must use Postgres*)
 
-### 2. Environment Setup
-```bash
-cp .env.example .env
-# Edit .env and configure your LLM API keys and DATABASE_URL
-```
-
-### 3. Build & Run Locally
+### 2. Build & Run
 ```bash
 # 1. Build the React UI
-cd ui
-npm install
-npm run build
-cd ..
+cd ui && npm install && npm run build && cd ..
 
 # 2. Run the FastAPI backend
+cp .env.example .env
 uv run uvicorn main:app --reload
 ```
 Navigate to `http://localhost:8000` to view the SwarmSRE dashboard!
@@ -44,12 +61,4 @@ Navigate to `http://localhost:8000` to view the SwarmSRE dashboard!
 The platform includes a robust Pytest suite with end-to-end (E2E) flows and WebSocket integration tests.
 ```bash
 PYTHONPATH=. uv run pytest tests/
-```
-
-## 🚢 Deployment (Helm)
-
-We provide Helm charts for Kubernetes deployments:
-```bash
-# Install the SwarmSRE Control Plane
-helm install swarmsre charts/swarmsre-server/
 ```

@@ -1,0 +1,42 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "swarmsre-server.fullname" . }}-postgres
+  labels:
+    {{- include "swarmsre-server.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "swarmsre-server.fullname" . }}-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "swarmsre-server.fullname" . }}-postgres
+  template:
+    metadata:
+      labels:
+        app: {{ include "swarmsre-server.fullname" . }}-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: "swarmsre"
+            - name: POSTGRES_PASSWORD
+              value: "swarmsre"
+            - name: POSTGRES_DB
+              value: "swarmsre"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.persistence.size }}
+{{- end }}
