@@ -16,7 +16,7 @@ RUN pip install uv
 # Install dependencies using uv
 COPY pyproject.toml .
 # We don't have a uv.lock but uv can install from pyproject.toml
-RUN uv pip install --system .
+RUN uv pip install --system -r pyproject.toml
 
 # Final Production Image
 FROM python:3.14-slim-bookworm
