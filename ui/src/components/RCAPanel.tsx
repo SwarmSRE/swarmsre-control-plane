@@ -26,17 +26,11 @@ export const RCAPanel: React.FC<RCAPanelProps> = ({ incident, onRefreshNeeded })
   const isFailed = incident.status === 'FAILED';
   const confidence = incident.confidence_score ?? 0;
 
-  // Extract structured findings if available (from JSON strings in state)
-  let logHunterData = null;
-  let telemetryData = null;
-  let gitopsData = null;
-  try {
-    if (incident.log_hunter_output) logHunterData = JSON.parse(incident.log_hunter_output as string);
-    if (incident.telemetry_output) telemetryData = JSON.parse(incident.telemetry_output as string);
-    if (incident.gitops_output) gitopsData = JSON.parse(incident.gitops_output as string);
-  } catch (e) {
-    console.error("Failed to parse structured agent outputs", e);
-  }
+  // Extract structured findings if available
+  // The API already returns these as parsed JSON objects
+  const logHunterData = incident.log_hunter_output as Record<string, any> | null | undefined;
+  const telemetryData = incident.telemetry_output as Record<string, any> | null | undefined;
+  const gitopsData = incident.gitops_output as Record<string, any> | null | undefined;
 
   return (
     <div className="bg-[#111827]/50 backdrop-blur-md border border-[#1E293B] rounded-xl flex flex-col h-full overflow-hidden">
