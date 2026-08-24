@@ -100,8 +100,6 @@ jobs:
           # Copy files
           cp $GITHUB_WORKSPACE/install.yaml .
           cp $GITHUB_WORKSPACE/scripts/install.sh .
-          # Serve the install script at the root URL so `curl https://get.swarmsre.app | sh` works
-          cp $GITHUB_WORKSPACE/scripts/install.sh index.html
           
           # Build traditional Helm repo index
           mkdir -p charts
