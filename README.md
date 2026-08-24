@@ -25,7 +25,7 @@ kubectl apply -n swarmsre-system -f https://get.swarmsre.app/install.yaml
 
 ### Option 2: The Installer Script
 ```bash
-curl -sfL https://get.swarmsre.app | sh -
+curl -sfL https://get.swarmsre.app/install.sh | sh -
 ```
 
 ### Option 3: Helm OCI (Recommended for Production)
