@@ -3,12 +3,12 @@ entries:
   swarmsre-server:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-08-24T06:27:17.091794921Z"
+    created: "2026-08-24T06:37:22.939019862Z"
     description: A Helm chart for Kubernetes
-    digest: 1de6397f77caaf3da4e826685ae66c897886e74a06d70bf54f60029f99172174
+    digest: 2a62978d40c60e89588467fe0e8cb785656606d6b01a730a8258b977f6a8b9cf
     name: swarmsre-server
     type: application
     urls:
     - https://get.swarmsre.app/charts/swarmsre-server-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-24T06:27:17.091390817Z"
+generated: "2026-08-24T06:37:22.938541002Z"
