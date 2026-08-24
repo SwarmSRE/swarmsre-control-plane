@@ -82,39 +82,17 @@ jobs:
         run: |
           helm template swarmsre charts/swarmsre-server/ --namespace swarmsre-system --set config.openaiApiKey=REPLACE_ME > install.yaml
 
-      - name: Publish to GitHub Pages
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::500345929632:role/swarmsre-github-actions-role
+          aws-region: us-east-1
+
+      - name: Publish Script to S3 (CDN)
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Clone gh-pages branch to temp dir, or init fresh if it doesn't exist yet
-          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" /tmp/gh-pages 2>/dev/null || {
-            git init /tmp/gh-pages
-            cd /tmp/gh-pages
-            git checkout -b gh-pages
-            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          }
-          cd /tmp/gh-pages
-          
-          # Copy files
-          cp $GITHUB_WORKSPACE/install.yaml .
-          cp $GITHUB_WORKSPACE/scripts/install.sh .
-          
-          # Build traditional Helm repo index
-          mkdir -p charts
-          cp $GITHUB_WORKSPACE/swarmsre-server-${VERSION}.tgz charts/
-          cd charts
-          helm repo index . --url https://get.swarmsre.app/charts
-          cd ..
-          
-          # Add custom domain if not exists
-          echo "get.swarmsre.app" > CNAME
-          
-          # Commit and push
-          git add .
-          git commit -m "Deploy release ${GITHUB_REF_NAME} to GitHub Pages" || true
-          git push -u origin gh-pages
+          aws s3 cp scripts/install.sh s3://get-swarmsre-app-installer/index \
+            --content-type "text/plain" \
+            --cache-control "max-age=300"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
