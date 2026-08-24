@@ -68,17 +68,19 @@ jobs:
       - name: Push Helm Chart to GHCR (OCI)
         run: |
           VERSION=${GITHUB_REF_NAME#v}
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-          helm push swarmsre-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
+          helm push swarmsre-server-${VERSION}.tgz oci://${{ env.REGISTRY }}/${OWNER}/charts
           
       - name: Sign Helm Chart
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository_owner }}/charts/swarmsre-server:${VERSION}
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          cosign sign --yes ${{ env.REGISTRY }}/${OWNER}/charts/swarmsre-server:${VERSION}
 
       - name: Generate static install.yaml
         run: |
-          helm template swarmsre charts/swarmsre-server/ --namespace swarmsre-system > install.yaml
+          helm template swarmsre charts/swarmsre-server/ --namespace swarmsre-system --set config.openaiApiKey=REPLACE_ME > install.yaml
 
       - name: Publish to GitHub Pages
         run: |
